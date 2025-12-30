@@ -1,0 +1,860 @@
+// Prisma Schema for PakAutoSe Generator E-Commerce Platform
+// Complete database design covering all modules - MongoDB Version
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER & AUTHENTICATION ====================
+
+enum UserRole {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+model User {
+  id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String?
+  email                 String    @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?
+  phone                 String?
+  role                  UserRole  @default(USER)
+  status                UserStatus @default(PENDING_VERIFICATION)
+  
+  // Address Information
+  address               String?
+  city                  String?
+  state                 String?
+  postalCode            String?
+  country               String?   @default("Pakistan")
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastLoginAt           DateTime?
+  
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  orders                Order[]
+  serviceRequests       ServiceRequest[]
+  reviews               Review[]
+  cart                  Cart?
+  wishlist              WishlistItem[]
+  notifications         Notification[]
+  addresses             Address[]
+  passwordResetTokens   PasswordResetToken[]
+  verificationTokens    EmailVerificationToken[]
+
+  @@index([role])
+  @@index([status])
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  used      Boolean  @default(false)
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Address {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  label       String   @default("Home") // Home, Office, etc.
+  fullName    String
+  phone       String
+  address     String
+  city        String
+  state       String
+  postalCode  String
+  country     String   @default("Pakistan")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@index([userId])
+}
+
+// ==================== GENERATORS ====================
+
+enum FuelType {
+  DIESEL
+  PETROL
+  GAS
+  DUAL_FUEL
+  NATURAL_GAS
+}
+
+enum GeneratorCondition {
+  NEW
+  REFURBISHED
+  USED
+}
+
+model Generator {
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  slug            String             @unique
+  description     String
+  shortDescription String?
+  
+  // Specifications
+  powerKva        Float
+  powerKw         Float
+  fuelType        FuelType
+  brand           String
+  model           String?
+  condition       GeneratorCondition @default(NEW)
+  
+  // Pricing
+  price           Float
+  compareAtPrice  Float?
+  costPrice       Float?             // For profit calculation (admin only)
+  
+  // Inventory
+  stock           Int                @default(0)
+  sku             String?            @unique
+  lowStockThreshold Int              @default(5)
+  
+  // Additional Details
+  warranty        String?
+  weight          Float?             // in kg
+  dimensions      String?            // LxWxH
+  engineBrand     String?
+  alternatorBrand String?
+  voltage         String?
+  frequency       String?            @default("50Hz")
+  phase           String?            @default("Single Phase")
+  noiseLevel      String?            // in dB
+  fuelConsumption String?            // L/hr
+  tankCapacity    Float?             // in liters
+  runtime         String?            // hours at X% load
+  
+  // Media
+  images          GeneratorImage[]
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  
+  // Status
+  isActive        Boolean            @default(true)
+  isFeatured      Boolean            @default(false)
+  
+  // Timestamps
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  // Relations
+  category        GeneratorCategory? @relation(fields: [categoryId], references: [id])
+  categoryId      String?            @db.ObjectId
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  reviews         Review[]
+  compatiblePartIds String[]         @db.ObjectId
+  compatibleParts   Part[]           @relation(fields: [compatiblePartIds], references: [id])
+
+  @@index([brand])
+  @@index([fuelType])
+  @@index([powerKva])
+  @@index([price])
+  @@index([isActive])
+  @@index([categoryId])
+}
+
+model GeneratorImage {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  url         String
+  alt         String?
+  isPrimary   Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  generatorId String    @db.ObjectId
+  createdAt   DateTime  @default(now())
+  
+  generator   Generator @relation(fields: [generatorId], references: [id], onDelete: Cascade)
+
+  @@index([generatorId])
+}
+
+model GeneratorCategory {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String      @unique
+  description String?
+  image       String?
+  parentId    String?     @db.ObjectId
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  parent      GeneratorCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    GeneratorCategory[] @relation("CategoryHierarchy")
+  generators  Generator[]
+
+  @@index([parentId])
+}
+
+// ==================== GENERATOR PARTS ====================
+
+model Part {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  slug            String      @unique
+  description     String
+  shortDescription String?
+  
+  // Pricing
+  price           Float
+  compareAtPrice  Float?
+  costPrice       Float?
+  
+  // Inventory
+  stock           Int         @default(0)
+  sku             String?     @unique
+  lowStockThreshold Int       @default(10)
+  
+  // Part Details
+  partNumber      String?
+  brand           String?
+  weight          Float?
+  dimensions      String?
+  
+  // Compatibility
+  compatibility   String?     // Text description of compatible generators
+  
+  // Media
+  images          PartImage[]
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  
+  // Status
+  isActive        Boolean     @default(true)
+  isFeatured      Boolean     @default(false)
+  
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  category        PartCategory? @relation(fields: [categoryId], references: [id])
+  categoryId      String?       @db.ObjectId
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  reviews         Review[]
+  compatibleGeneratorIds String[] @db.ObjectId
+  compatibleGenerators   Generator[] @relation(fields: [compatibleGeneratorIds], references: [id])
+
+  @@index([brand])
+  @@index([price])
+  @@index([isActive])
+  @@index([categoryId])
+}
+
+model PartImage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  alt       String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  partId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+  
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+}
+
+model PartCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  parentId    String?  @db.ObjectId
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  parent      PartCategory?  @relation("PartCategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    PartCategory[] @relation("PartCategoryHierarchy")
+  parts       Part[]
+
+  @@index([parentId])
+}
+
+// ==================== ORDERS ====================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  STRIPE
+  BANK_TRANSFER
+}
+
+model Order {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber     String        @unique
+  
+  // Customer
+  userId          String        @db.ObjectId
+  user            User          @relation(fields: [userId], references: [id])
+  
+  // Shipping Address
+  shippingAddressId String?     @db.ObjectId
+  shippingAddress   Address?    @relation(fields: [shippingAddressId], references: [id])
+  
+  // Shipping Details (snapshot at order time)
+  shippingName    String
+  shippingPhone   String
+  shippingEmail   String
+  shippingAddressLine String
+  shippingCity    String
+  shippingState   String
+  shippingPostalCode String
+  shippingCountry String       @default("Pakistan")
+  
+  // Order Details
+  items           OrderItem[]
+  
+  // Pricing
+  subtotal        Float
+  shippingCost    Float        @default(0)
+  tax             Float        @default(0)
+  discount        Float        @default(0)
+  total           Float
+  
+  // Coupon
+  couponId        String?      @db.ObjectId
+  coupon          Coupon?      @relation(fields: [couponId], references: [id])
+  couponCode      String?
+  couponDiscount  Float        @default(0)
+  
+  // Status
+  status          OrderStatus  @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod
+  
+  // Payment Details
+  stripePaymentIntentId String?
+  stripeSessionId       String?
+  paidAt                DateTime?
+  
+  // Tracking
+  trackingNumber  String?
+  carrier         String?
+  estimatedDelivery DateTime?
+  deliveredAt     DateTime?
+  
+  // Notes
+  customerNotes   String?
+  adminNotes      String?
+  
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Invoice
+  invoiceNumber   String?      @unique
+  invoiceUrl      String?
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+enum OrderItemType {
+  GENERATOR
+  PART
+}
+
+model OrderItem {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String        @db.ObjectId
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Product Reference
+  itemType    OrderItemType
+  generatorId String?       @db.ObjectId
+  generator   Generator?    @relation(fields: [generatorId], references: [id])
+  partId      String?       @db.ObjectId
+  part        Part?         @relation(fields: [partId], references: [id])
+  
+  // Snapshot at order time
+  name        String
+  sku         String?
+  price       Float
+  quantity    Int
+  total       Float
+  
+  // Product image snapshot
+  imageUrl    String?
+
+  @@index([orderId])
+  @@index([generatorId])
+  @@index([partId])
+}
+
+// ==================== CART ====================
+
+model Cart {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String     @unique @db.ObjectId
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  cartId      String     @db.ObjectId
+  cart        Cart       @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  
+  // Product Reference
+  itemType    OrderItemType
+  generatorId String?    @db.ObjectId
+  generator   Generator? @relation(fields: [generatorId], references: [id])
+  partId      String?    @db.ObjectId
+  part        Part?      @relation(fields: [partId], references: [id])
+  
+  quantity    Int        @default(1)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([cartId, generatorId])
+  @@unique([cartId, partId])
+  @@index([cartId])
+}
+
+// ==================== WISHLIST ====================
+
+model WishlistItem {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String     @db.ObjectId
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Product Reference
+  itemType    OrderItemType
+  generatorId String?    @db.ObjectId
+  generator   Generator? @relation(fields: [generatorId], references: [id])
+  partId      String?    @db.ObjectId
+  part        Part?      @relation(fields: [partId], references: [id])
+  
+  createdAt   DateTime   @default(now())
+
+  @@unique([userId, generatorId])
+  @@unique([userId, partId])
+  @@index([userId])
+}
+
+// ==================== REVIEWS ====================
+
+model Review {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String     @db.ObjectId
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Product Reference
+  itemType    OrderItemType
+  generatorId String?    @db.ObjectId
+  generator   Generator? @relation(fields: [generatorId], references: [id])
+  partId      String?    @db.ObjectId
+  part        Part?      @relation(fields: [partId], references: [id])
+  
+  rating      Int        // 1-5
+  title       String?
+  comment     String
+  
+  // Admin moderation
+  isApproved  Boolean    @default(false)
+  isVerifiedPurchase Boolean @default(false)
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([generatorId])
+  @@index([partId])
+  @@index([isApproved])
+}
+
+// ==================== SERVICE REQUESTS ====================
+
+enum ServiceRequestStatus {
+  PENDING
+  REVIEWING
+  QUOTED
+  QUOTE_SENT
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ServicePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ServiceType {
+  REPAIR
+  MAINTENANCE
+  INSTALLATION
+  INSPECTION
+  EMERGENCY
+  OTHER
+}
+
+model ServiceRequest {
+  id              String               @id @default(auto()) @map("_id") @db.ObjectId
+  requestNumber   String               @unique
+  
+  // Customer
+  userId          String               @db.ObjectId
+  user            User                 @relation(fields: [userId], references: [id])
+  
+  // Contact Details
+  contactName     String
+  contactPhone    String
+  contactEmail    String
+  
+  // Location
+  serviceAddress  String
+  serviceCity     String
+  serviceState    String
+  
+  // Service Details
+  serviceType     ServiceType
+  generatorBrand  String?
+  generatorModel  String?
+  generatorSerial String?
+  
+  // Problem Description
+  problemTitle    String
+  problemDescription String
+  
+  // Images
+  images          ServiceImage[]
+  
+  // Admin Response
+  status          ServiceRequestStatus @default(PENDING)
+  priority        ServicePriority      @default(NORMAL)
+  adminNotes      String?
+  diagnosis       String?
+  
+  // Pricing
+  estimatedCost   Float?
+  finalCost       Float?
+  isPaid          Boolean              @default(false)
+  paidAt          DateTime?
+  
+  // Scheduling
+  preferredDate   DateTime?
+  scheduledDate   DateTime?
+  completedAt     DateTime?
+  
+  // Assigned Technician
+  assignedTo      String?
+  
+  // Timestamps
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ServiceImage {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  url              String
+  description      String?
+  serviceRequestId String         @db.ObjectId
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+
+  @@index([serviceRequestId])
+}
+
+// ==================== NOTIFICATIONS ====================
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  ORDER_UPDATE
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  SERVICE_REQUEST_SUBMITTED
+  SERVICE_REQUEST_UPDATED
+  SERVICE_UPDATE
+  SERVICE_QUOTE_RECEIVED
+  SERVICE_COMPLETED
+  PRICE_DROP
+  BACK_IN_STOCK
+  WELCOME
+  PASSWORD_RESET
+  ACCOUNT_BLOCKED
+  SYSTEM
+  PROMOTIONAL
+}
+
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  
+  // Related entities
+  orderId   String?
+  serviceRequestId String?
+  
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ==================== COUPONS ====================
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+model Coupon {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  code            String     @unique
+  description     String?
+  
+  type            CouponType
+  value           Float      // Percentage or fixed amount
+  
+  // Constraints
+  minOrderAmount  Float?
+  maxDiscount     Float?     // Max discount for percentage coupons
+  usageLimit      Int?       // Total uses allowed
+  usageCount      Int        @default(0)
+  perUserLimit    Int        @default(1)
+  
+  // Validity
+  startsAt        DateTime   @default(now())
+  expiresAt       DateTime?
+  
+  // Restrictions
+  isActive        Boolean    @default(true)
+  appliesToGenerators Boolean @default(true)
+  appliesToParts  Boolean    @default(true)
+  
+  // Relations
+  orders          Order[]
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([isActive])
+}
+
+// ==================== SETTINGS ====================
+
+model Setting {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  group     String   @default("general") // general, shipping, payment, email, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+}
+
+// ==================== BRANDS ====================
+
+model Brand {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  slug        String   @unique
+  logo        String?
+  description String?
+  website     String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== BANNERS & CONTENT ====================
+
+model Banner {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  subtitle    String?
+  image       String
+  link        String?
+  buttonText  String?
+  position    String   @default("home") // home, generators, parts, services
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  startsAt    DateTime @default(now())
+  endsAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([position])
+  @@index([isActive])
+}
+
+model Page {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  slug        String   @unique
+  content     String
+  metaTitle   String?
+  metaDescription String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== CONTACT & INQUIRIES ====================
+
+model ContactInquiry {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  isReplied Boolean  @default(false)
+  repliedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  oldValues   String?  // JSON
+  newValues   String?  // JSON
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}
