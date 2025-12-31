@@ -8,6 +8,8 @@ import { AuditLog } from "@/models/AuditLog";
 import { z } from "zod";
 import { sendServiceStatusEmail, sendInternalNotesEmail, sendPriorityChangeEmail } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 const updateServiceSchema = z.object({
   status: z.enum([
     "PENDING",

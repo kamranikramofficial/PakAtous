@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/prisma";
 import { Order } from "@/models/Order";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/orders/[id]/invoice - Generate invoice HTML for download
 export async function GET(
   request: NextRequest,

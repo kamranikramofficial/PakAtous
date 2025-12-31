@@ -8,6 +8,8 @@ import { serviceRequestSchema } from "@/lib/validations";
 import { generateServiceRequestNumber } from "@/lib/utils";
 import { sendEmail, getServiceRequestEmailTemplate, getAdminNewServiceRequestNotificationTemplate, sendStaffNewServiceRequestEmail } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 // Get user's service requests
 export async function GET(request: NextRequest) {
   try {

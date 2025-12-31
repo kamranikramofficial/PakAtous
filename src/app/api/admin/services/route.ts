@@ -4,6 +4,8 @@ import dbConnect from "@/lib/prisma";
 import { ServiceRequest } from "@/models/ServiceRequest";
 import { User } from "@/models/User";
 
+export const dynamic = 'force-dynamic';
+
 // Get all service requests (admin/staff)
 export async function GET(request: NextRequest) {
   try {

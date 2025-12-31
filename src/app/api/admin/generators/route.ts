@@ -7,6 +7,8 @@ import { Review } from "@/models/Review";
 import { AuditLog } from "@/models/AuditLog";
 import { generatorSchema } from "@/lib/validations";
 
+export const dynamic = 'force-dynamic';
+
 // Get all generators (admin/staff)
 export async function GET(request: NextRequest) {
   try {

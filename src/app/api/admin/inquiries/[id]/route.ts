@@ -7,6 +7,8 @@ import { AuditLog } from "@/models/AuditLog";
 import { sendContactInternalNotesEmail, sendEmail } from "@/lib/email";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateInquirySchema = z.object({
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CLOSED"]).optional(),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),

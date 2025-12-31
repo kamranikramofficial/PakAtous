@@ -4,6 +4,8 @@ import dbConnect from "@/lib/prisma";
 import { Coupon, CouponType } from "@/models/Coupon";
 import { Order } from "@/models/Order";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

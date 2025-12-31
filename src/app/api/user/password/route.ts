@@ -4,6 +4,8 @@ import dbConnect from "@/lib/prisma";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
 
+export const dynamic = 'force-dynamic';
+
 // PUT /api/user/password - Change password
 export async function PUT(request: NextRequest) {
   try {

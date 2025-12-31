@@ -6,6 +6,8 @@ import { Generator, GeneratorImage } from "@/models/Generator";
 import { Part, PartImage } from "@/models/Part";
 import { addToCartSchema, updateCartItemSchema } from "@/lib/validations";
 
+export const dynamic = 'force-dynamic';
+
 // Get user's cart
 export async function GET() {
   try {

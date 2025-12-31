@@ -7,6 +7,8 @@ import { AuditLog } from "@/models/AuditLog";
 import { Notification } from "@/models/Notification";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateListingSchema = z.object({
   status: z.enum(["PENDING", "APPROVED", "REJECTED", "SOLD", "EXPIRED"]).optional(),
   adminNotes: z.string().optional(),

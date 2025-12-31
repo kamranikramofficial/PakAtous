@@ -5,6 +5,8 @@ import { Part, PartImage } from "@/models/Part";
 import { AuditLog } from "@/models/AuditLog";
 import { partSchema } from "@/lib/validations";
 
+export const dynamic = 'force-dynamic';
+
 // Get all parts (admin/staff)
 export async function GET(request: NextRequest) {
   try {

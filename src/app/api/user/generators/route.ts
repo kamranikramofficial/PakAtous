@@ -4,6 +4,8 @@ import dbConnect from "@/lib/prisma";
 import { UserGenerator } from "@/models/UserGenerator";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const createListingSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   brand: z.string().min(2, "Brand is required"),

@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/prisma";
 import { User } from "@/models/User";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/user/profile - Get current user's profile
 export async function GET() {
   try {

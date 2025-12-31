@@ -8,6 +8,8 @@ import { AuditLog } from "@/models/AuditLog";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),

@@ -13,6 +13,8 @@ import { checkoutSchema } from "@/lib/validations";
 import { generateOrderNumber, generateInvoiceNumber } from "@/lib/utils";
 import { sendEmail, getOrderConfirmationEmailTemplate, getAdminNewOrderNotificationTemplate } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 // Get user's orders
 export async function GET(request: NextRequest) {
   try {

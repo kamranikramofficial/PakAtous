@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/prisma";
 import { ContactInquiry } from "@/models/ContactInquiry";
 
+export const dynamic = 'force-dynamic';
+
 // Get all contact inquiries (admin/staff)
 export async function GET(request: NextRequest) {
   try {

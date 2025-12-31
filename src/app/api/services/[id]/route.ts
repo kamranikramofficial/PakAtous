@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/prisma";
 import { ServiceRequest } from "@/models/ServiceRequest";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/services/[id] - Get single service request
 export async function GET(
   request: NextRequest,

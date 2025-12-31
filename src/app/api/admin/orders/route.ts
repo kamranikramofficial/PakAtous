@@ -4,6 +4,8 @@ import dbConnect from "@/lib/prisma";
 import { Order, OrderItem } from "@/models/Order";
 import { User } from "@/models/User";
 
+export const dynamic = 'force-dynamic';
+
 // Get all orders (admin/staff)
 export async function GET(request: NextRequest) {
   try {

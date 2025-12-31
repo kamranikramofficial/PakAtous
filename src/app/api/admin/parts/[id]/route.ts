@@ -8,6 +8,8 @@ import { User } from "@/models/User";
 import { AuditLog } from "@/models/AuditLog";
 import { partSchema } from "@/lib/validations";
 
+export const dynamic = 'force-dynamic';
+
 // Get single part (admin)
 export async function GET(
   request: NextRequest,

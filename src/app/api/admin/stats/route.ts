@@ -8,6 +8,8 @@ import { Part } from "@/models/Part";
 import { ServiceRequest } from "@/models/ServiceRequest";
 import { subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await auth();

@@ -5,6 +5,8 @@ import { Order } from "@/models/Order";
 import { Generator } from "@/models/Generator";
 import { Part } from "@/models/Part";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/orders/[id] - Get single order details
 export async function GET(
   request: NextRequest,

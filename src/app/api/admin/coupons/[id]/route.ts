@@ -5,6 +5,8 @@ import { Coupon } from "@/models/Coupon";
 import { AuditLog } from "@/models/AuditLog";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateCouponSchema = z.object({
   code: z.string().min(3).transform(val => val.toUpperCase()).optional(),
   description: z.string().optional(),

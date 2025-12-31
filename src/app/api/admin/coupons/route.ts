@@ -5,6 +5,8 @@ import { Coupon } from "@/models/Coupon";
 import { AuditLog } from "@/models/AuditLog";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const couponSchema = z.object({
   code: z.string().min(3, "Code must be at least 3 characters").transform(val => val.toUpperCase()),
   description: z.string().optional(),

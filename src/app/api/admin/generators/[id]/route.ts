@@ -8,6 +8,8 @@ import { User } from "@/models/User";
 import { AuditLog } from "@/models/AuditLog";
 import { generatorSchema } from "@/lib/validations";
 
+export const dynamic = 'force-dynamic';
+
 // Get single generator (admin)
 export async function GET(
   request: NextRequest,

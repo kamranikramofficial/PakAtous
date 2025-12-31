@@ -6,6 +6,7 @@ import { User } from "@/models/User";
 import { AuditLog } from "@/models/AuditLog";
 import { Notification } from "@/models/Notification";
 import { updateOrderStatusSchema } from "@/lib/validations";
+export const dynamic = 'force-dynamic';
 import { 
   sendOrderStatusEmail, 
   sendShippingUpdateEmail, 
