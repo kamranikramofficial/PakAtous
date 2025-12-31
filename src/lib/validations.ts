@@ -175,6 +175,7 @@ export const serviceRequestSchema = z.object({
   serviceCity: z.string().min(2, "City is required"),
   serviceState: z.string().min(2, "State is required"),
   serviceType: z.enum(["REPAIR", "MAINTENANCE", "INSTALLATION", "INSPECTION", "EMERGENCY", "OTHER"]),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional().default("NORMAL"),
   generatorBrand: z.string().optional(),
   generatorModel: z.string().optional(),
   generatorSerial: z.string().optional(),
@@ -219,8 +220,9 @@ export const checkoutSchema = z.object({
 });
 
 export const updateOrderStatusSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "REFUNDED"]),
+  status: z.enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "REFUNDED"]).optional(),
   adminNotes: z.string().optional(),
+  internalNotes: z.string().optional(),
   trackingNumber: z.string().optional(),
   carrier: z.string().optional(),
   estimatedDelivery: z.coerce.date().optional().nullable(),

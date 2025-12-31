@@ -35,6 +35,7 @@ interface Order {
   total: number;
   customerNotes?: string;
   adminNotes?: string;
+  internalNotes?: string;
   trackingNumber?: string;
   carrier?: string;
   estimatedDelivery?: string;
@@ -93,6 +94,7 @@ export default function AdminOrderDetailPage() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [carrier, setCarrier] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [internalNotes, setInternalNotes] = useState("");
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -106,6 +108,7 @@ export default function AdminOrderDetailPage() {
         setTrackingNumber(data.order.trackingNumber || "");
         setCarrier(data.order.carrier || "");
         setAdminNotes(data.order.adminNotes || "");
+        setInternalNotes(data.order.internalNotes || "");
       } catch (error) {
         toast({
           title: "Error",
@@ -133,6 +136,7 @@ export default function AdminOrderDetailPage() {
           trackingNumber: trackingNumber || undefined,
           carrier: carrier || undefined,
           adminNotes: adminNotes || undefined,
+          internalNotes: internalNotes,
         }),
       });
 
@@ -401,6 +405,19 @@ export default function AdminOrderDetailPage() {
                   placeholder="Internal notes..."
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Internal Notes (Staff Communication)</Label>
+                <Textarea
+                  value={internalNotes}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                  placeholder="Add notes for staff communication. Staff will be notified via email."
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Staff members will receive email notifications when you add notes here.
+                </p>
               </div>
 
               <Button

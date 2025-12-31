@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,6 +26,7 @@ export default function StaffOrderDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [internalNotes, setInternalNotes] = useState("");
 
   useEffect(() => {
     if (status === "loading") return;
@@ -47,6 +50,7 @@ export default function StaffOrderDetailPage() {
       if (res.ok) {
         const data = await res.json();
         setOrder(data.order);
+        setInternalNotes(data.order.internalNotes || "");
       } else {
         toast({
           title: "Error",
@@ -84,6 +88,35 @@ export default function StaffOrderDetailPage() {
       toast({
         title: "Error",
         description: "Failed to update order status",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const updateInternalNotes = async () => {
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ internalNotes }),
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Notes Saved",
+          description: "Internal notes updated. Admin will be notified.",
+        });
+        fetchOrder();
+      } else {
+        throw new Error("Failed to update notes");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update internal notes",
         variant: "destructive",
       });
     } finally {
@@ -288,6 +321,34 @@ export default function StaffOrderDetailPage() {
                   </Badge>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Internal Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Internal Notes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Staff Communication</Label>
+                <Textarea
+                  value={internalNotes}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                  placeholder="Add notes for admin communication..."
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Admin will receive email notification when you save notes.
+                </p>
+              </div>
+              <Button
+                onClick={updateInternalNotes}
+                disabled={updating}
+                className="w-full"
+              >
+                {updating ? "Saving..." : "Save Notes"}
+              </Button>
             </CardContent>
           </Card>
         </div>

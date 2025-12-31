@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { loginSchema, type LoginInput } from "@/lib/validations";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -23,6 +23,8 @@ export default function LoginPage() {
 
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const error = searchParams.get("error");
+  const verified = searchParams.get("verified");
+  const reset = searchParams.get("reset");
 
   const {
     register,
@@ -76,6 +78,18 @@ export default function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {verified && (
+          <div className="rounded-md bg-green-50 p-3 text-sm text-green-600">
+            Email verified successfully! You can now sign in.
+          </div>
+        )}
+
+        {reset && (
+          <div className="rounded-md bg-green-50 p-3 text-sm text-green-600">
+            Password reset successfully! You can now sign in with your new password.
+          </div>
+        )}
+
         {error && (
           <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {error === "OAuthAccountNotLinked"
@@ -148,5 +162,21 @@ export default function LoginPage() {
         </div>
       </CardFooter>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </CardContent>
+        </Card>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

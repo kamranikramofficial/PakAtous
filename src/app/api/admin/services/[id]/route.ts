@@ -6,7 +6,7 @@ import { User } from "@/models/User";
 import { Notification } from "@/models/Notification";
 import { AuditLog } from "@/models/AuditLog";
 import { z } from "zod";
-import { sendServiceStatusEmail } from "@/lib/email";
+import { sendServiceStatusEmail, sendInternalNotesEmail, sendPriorityChangeEmail } from "@/lib/email";
 
 const updateServiceSchema = z.object({
   status: z.enum([
@@ -123,6 +123,8 @@ export async function PUT(
     const user = await User.findById(service.userId).select('email name');
 
     const oldStatus = service.status;
+    const oldPriority = service.priority;
+    const oldInternalNotes = service.internalNotes || '';
 
     // Build update data
     const updateData: any = {};
@@ -192,6 +194,59 @@ export async function PUT(
             user: { email: user.email, name: user.name },
           },
           data.status
+        );
+      }
+    }
+
+    // Send email notification if internal notes changed (admin/staff communication)
+    if (data.internalNotes !== undefined && data.internalNotes !== oldInternalNotes) {
+      const currentUserRole = session.user.role;
+      const senderName = session.user.name || (currentUserRole === 'ADMIN' ? 'Admin' : 'Staff');
+      
+      // If STAFF changes notes → notify ALL ADMINs
+      // If ADMIN changes notes → notify ALL STAFF
+      const targetRole = currentUserRole === 'ADMIN' ? 'STAFF' : 'ADMIN';
+      const recipients = await User.find({ 
+        role: targetRole,
+        isActive: { $ne: false } // Include users where isActive is true or undefined
+      }).select('email name');
+      
+      const recipientEmails = recipients.map(r => r.email);
+      console.log(`Internal notes changed by ${currentUserRole}. Sending email to ${targetRole}:`, recipientEmails);
+      
+      if (recipientEmails.length > 0) {
+        await sendInternalNotesEmail(
+          { ...service.toObject(), id: service._id.toString(), requestNumber: service.requestNumber },
+          senderName,
+          data.internalNotes,
+          recipientEmails,
+          targetRole
+        );
+        console.log('Internal notes email sent successfully');
+      } else {
+        console.log('No recipients found for internal notes email');
+      }
+    }
+
+    // Send email notification if priority changed
+    if (data.priority && data.priority !== oldPriority) {
+      const changerName = session.user.name || session.user.role;
+      
+      // Notify all admins and staff about priority change
+      const allStaff = await User.find({ 
+        role: { $in: ['ADMIN', 'STAFF'] },
+        isActive: { $ne: false }, // Include users where isActive is true or undefined
+        _id: { $ne: session.user.id } // Don't notify the person who made the change
+      }).select('email name');
+      
+      const staffEmails = allStaff.map(s => s.email);
+      if (staffEmails.length > 0) {
+        await sendPriorityChangeEmail(
+          { ...service.toObject(), id: service._id.toString(), requestNumber: service.requestNumber },
+          oldPriority || 'NORMAL',
+          data.priority,
+          changerName,
+          staffEmails
         );
       }
     }

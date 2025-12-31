@@ -81,6 +81,7 @@ export interface IOrder extends Document {
   deliveredAt?: Date;
   customerNotes?: string;
   adminNotes?: string;
+  internalNotes?: string;
   invoiceNumber?: string;
   invoiceUrl?: string;
   createdAt: Date;
@@ -143,6 +144,7 @@ const orderSchema = new Schema<IOrder>(
     deliveredAt: { type: Date },
     customerNotes: { type: String },
     adminNotes: { type: String },
+    internalNotes: { type: String },
     invoiceNumber: { type: String, unique: true, sparse: true },
     invoiceUrl: { type: String },
   },

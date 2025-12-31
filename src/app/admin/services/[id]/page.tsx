@@ -41,7 +41,7 @@ const serviceStatuses = [
 interface ServiceRequest {
   _id: string;
   requestNumber: string;
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   user?: {
     _id: string;
     name: string;
@@ -85,9 +85,11 @@ export default function EditServicePage() {
   
   const [formData, setFormData] = useState({
     status: "",
+    priority: "",
     estimatedCost: "",
     finalCost: "",
     adminNotes: "",
+    internalNotes: "",
     scheduledDate: "",
   });
 
@@ -104,9 +106,11 @@ export default function EditServicePage() {
       setService(serviceData);
       setFormData({
         status: serviceData.status || "PENDING",
+        priority: serviceData.priority || "NORMAL",
         estimatedCost: serviceData.estimatedCost?.toString() || "",
         finalCost: serviceData.finalCost?.toString() || "",
         adminNotes: serviceData.adminNotes || "",
+        internalNotes: serviceData.internalNotes || "",
         scheduledDate: serviceData.scheduledDate ? new Date(serviceData.scheduledDate).toISOString().split("T")[0] : "",
       });
     } catch (error) {
@@ -128,9 +132,11 @@ export default function EditServicePage() {
     try {
       const updateData = {
         status: formData.status,
+        priority: formData.priority || undefined,
         estimatedCost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : undefined,
         actualCost: formData.finalCost ? parseFloat(formData.finalCost) : undefined,
         adminNotes: formData.adminNotes || undefined,
+        internalNotes: formData.internalNotes,
         scheduledDate: formData.scheduledDate ? new Date(formData.scheduledDate).toISOString() : undefined,
       };
 
@@ -346,6 +352,46 @@ export default function EditServicePage() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-green-500" />
+                            Low
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="NORMAL">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-blue-500" />
+                            Normal
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="HIGH">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                            High
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="URGENT">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-red-500" />
+                            Urgent
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="scheduledDate">Scheduled Date</Label>
                     <Input
                       id="scheduledDate"
@@ -391,6 +437,20 @@ export default function EditServicePage() {
                     onChange={(e) => setFormData({ ...formData, adminNotes: e.target.value })}
                     rows={5}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="internalNotes">Internal Notes (Staff Communication)</Label>
+                  <Textarea
+                    id="internalNotes"
+                    placeholder="Add notes for staff communication. Staff will be notified via email when you add notes here."
+                    value={formData.internalNotes}
+                    onChange={(e) => setFormData({ ...formData, internalNotes: e.target.value })}
+                    rows={4}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    These notes are for internal team communication only. Staff members will receive email notifications.
+                  </p>
                 </div>
 
                 <div className="flex gap-4">

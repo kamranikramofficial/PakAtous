@@ -6,7 +6,15 @@ import { User } from "@/models/User";
 import { AuditLog } from "@/models/AuditLog";
 import { Notification } from "@/models/Notification";
 import { updateOrderStatusSchema } from "@/lib/validations";
-import { sendOrderStatusEmail } from "@/lib/email";
+import { 
+  sendOrderStatusEmail, 
+  sendShippingUpdateEmail, 
+  sendOutForDeliveryEmail, 
+  sendDeliveryConfirmationEmail,
+  sendOrderCancellationEmail,
+  sendRefundConfirmationEmail,
+  sendOrderInternalNotesEmail
+} from "@/lib/email";
 
 // Get single order (admin/staff)
 export async function GET(
@@ -106,7 +114,7 @@ export async function PUT(
       );
     }
 
-    const { status, adminNotes, trackingNumber, carrier, estimatedDelivery } = validationResult.data;
+    const { status, adminNotes, internalNotes, trackingNumber, carrier, estimatedDelivery } = validationResult.data;
 
     const order = await Order.findById(id);
     
@@ -118,13 +126,15 @@ export async function PUT(
     const orderUser = order.userId ? await User.findById(order.userId).select('email name').lean() : null;
 
     const oldStatus = order.status;
+    const oldInternalNotes = order.internalNotes || '';
 
     // Build update data
     const updateData: any = {};
     if (status) updateData.status = status;
     if (trackingNumber) updateData.trackingNumber = trackingNumber;
     if (carrier) updateData.carrier = carrier;
-    if (adminNotes) updateData.adminNotes = adminNotes;
+    if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+    if (internalNotes !== undefined) updateData.internalNotes = internalNotes;
     if (estimatedDelivery) updateData.estimatedDelivery = estimatedDelivery;
     if (status === "SHIPPED" && !order.trackingNumber && trackingNumber) {
       updateData.trackingNumber = trackingNumber;
@@ -159,26 +169,33 @@ export async function PUT(
         link: `/account/orders/${order._id}`,
       });
 
-      // Send email
-      const statusMessages: Record<string, string> = {
-        CONFIRMED: "Your order has been confirmed and is being processed.",
-        PROCESSING: "Your order is being prepared for shipment.",
-        SHIPPED: `Your order has been shipped!${trackingNumber ? ` Tracking number: ${trackingNumber}` : ""}`,
-        OUT_FOR_DELIVERY: "Your order is out for delivery and will arrive soon!",
-        DELIVERED: "Your order has been delivered. Thank you for shopping with us!",
-        CANCELLED: "Your order has been cancelled. If you have any questions, please contact us.",
+      // Prepare order data for emails
+      const orderEmailData = {
+        ...(updatedOrder as any),
+        id: (updatedOrder as any)._id.toString(),
+        user: { email: orderUser?.email, name: orderUser?.name },
+        shippingEmail: order.shippingEmail || orderUser?.email,
       };
 
-      if (statusMessages[status] && orderUser?.email) {
+      // Send appropriate email based on status
+      if (orderUser?.email || order.shippingEmail) {
         try {
-          await sendOrderStatusEmail(
-            {
-              ...(updatedOrder as any),
-              id: (updatedOrder as any)._id.toString(),
-              user: { email: orderUser.email, name: orderUser.name },
-            },
-            status
-          );
+          switch (status) {
+            case "SHIPPED":
+              await sendShippingUpdateEmail(orderEmailData);
+              break;
+            case "OUT_FOR_DELIVERY":
+              await sendOutForDeliveryEmail(orderEmailData);
+              break;
+            case "DELIVERED":
+              await sendDeliveryConfirmationEmail(orderEmailData);
+              break;
+            case "CANCELLED":
+              await sendOrderCancellationEmail(orderEmailData, adminNotes);
+              break;
+            default:
+              await sendOrderStatusEmail(orderEmailData, status);
+          }
         } catch (emailError) {
           console.error("Failed to send status email:", emailError);
         }
@@ -209,6 +226,50 @@ export async function PUT(
 
       // Update payment status to refunded
       await Order.findByIdAndUpdate(id, { paymentStatus: "REFUNDED" });
+
+      // Send refund email
+      if (orderUser?.email || order.shippingEmail) {
+        try {
+          await sendRefundConfirmationEmail(
+            {
+              ...(updatedOrder as any),
+              id: (updatedOrder as any)._id.toString(),
+              shippingEmail: order.shippingEmail || orderUser?.email,
+            },
+            order.total
+          );
+        } catch (emailError) {
+          console.error("Failed to send refund email:", emailError);
+        }
+      }
+    }
+
+    // Send email notification if internal notes changed (admin/staff communication)
+    if (internalNotes !== undefined && internalNotes !== oldInternalNotes) {
+      const currentUserRole = session.user.role;
+      const senderName = session.user.name || (currentUserRole === 'ADMIN' ? 'Admin' : 'Staff');
+      
+      // If STAFF changes notes → notify ALL ADMINs
+      // If ADMIN changes notes → notify ALL STAFF
+      const targetRole = currentUserRole === 'ADMIN' ? 'STAFF' : 'ADMIN';
+      const recipients = await User.find({ 
+        role: targetRole,
+        isActive: { $ne: false }
+      }).select('email name');
+      
+      const recipientEmails = recipients.map(r => r.email);
+      console.log(`Order internal notes changed by ${currentUserRole}. Sending email to ${targetRole}:`, recipientEmails);
+      
+      if (recipientEmails.length > 0) {
+        await sendOrderInternalNotesEmail(
+          { ...order.toObject(), id: order._id.toString(), orderNumber: order.orderNumber },
+          senderName,
+          internalNotes,
+          recipientEmails,
+          targetRole
+        );
+        console.log('Order internal notes email sent successfully');
+      }
     }
 
     return NextResponse.json({

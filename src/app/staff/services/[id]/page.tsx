@@ -112,6 +112,20 @@ export default function StaffServiceDetailPage() {
     return <Badge variant={variants[status] || "outline"}>{status.replace(/_/g, " ")}</Badge>;
   };
 
+  const getPriorityBadge = (priority: string) => {
+    const colors: Record<string, string> = {
+      LOW: "bg-green-100 text-green-800",
+      NORMAL: "bg-blue-100 text-blue-800",
+      HIGH: "bg-yellow-100 text-yellow-800",
+      URGENT: "bg-red-100 text-red-800",
+    };
+    return (
+      <Badge className={colors[priority] || "bg-gray-100 text-gray-800"}>
+        {priority}
+      </Badge>
+    );
+  };
+
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -146,6 +160,7 @@ export default function StaffServiceDetailPage() {
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="outline">{service.serviceType?.replace(/_/g, " ")}</Badge>
+            {getPriorityBadge(service.priority || "NORMAL")}
             {getStatusBadge(service.status)}
           </div>
         </div>
@@ -236,6 +251,46 @@ export default function StaffServiceDetailPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <Select
+                    value={service.priority || "NORMAL"}
+                    onValueChange={(v) => updateService({ priority: v })}
+                    disabled={updating}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                          Low
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="NORMAL">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          Normal
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="HIGH">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                          High
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="URGENT">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                          Urgent
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                <div className="space-y-2">
                   <Label>Quoted Price (PKR)</Label>
                   <div className="flex gap-2">
                     <Input
@@ -253,7 +308,7 @@ export default function StaffServiceDetailPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Internal Notes (not visible to customer)</Label>
                 <Textarea

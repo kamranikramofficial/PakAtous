@@ -7,10 +7,17 @@ export interface IContactInquiry extends Document {
   phone?: string;
   subject: string;
   message: string;
+  newsletter: boolean;
   isRead: boolean;
   isReplied: boolean;
   repliedAt?: Date;
+  adminNotes?: string;
+  internalNotes?: string;
+  assignedTo?: string;
+  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  status?: 'NEW' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const contactInquirySchema = new Schema<IContactInquiry>(
@@ -20,12 +27,18 @@ const contactInquirySchema = new Schema<IContactInquiry>(
     phone: { type: String },
     subject: { type: String, required: true },
     message: { type: String, required: true },
+    newsletter: { type: Boolean, default: false },
     isRead: { type: Boolean, default: false },
     isReplied: { type: Boolean, default: false },
     repliedAt: { type: Date },
+    adminNotes: { type: String },
+    internalNotes: { type: String },
+    assignedTo: { type: String },
+    priority: { type: String, enum: ['LOW', 'NORMAL', 'HIGH', 'URGENT'], default: 'NORMAL' },
+    status: { type: String, enum: ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'], default: 'NEW' },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
+    timestamps: true,
   }
 );
 

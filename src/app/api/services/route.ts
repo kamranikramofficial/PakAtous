@@ -6,7 +6,7 @@ import { Notification } from "@/models/Notification";
 import { User } from "@/models/User";
 import { serviceRequestSchema } from "@/lib/validations";
 import { generateServiceRequestNumber } from "@/lib/utils";
-import { sendEmail, getServiceRequestEmailTemplate, getAdminNewServiceRequestNotificationTemplate } from "@/lib/email";
+import { sendEmail, getServiceRequestEmailTemplate, getAdminNewServiceRequestNotificationTemplate, sendStaffNewServiceRequestEmail } from "@/lib/email";
 
 // Get user's service requests
 export async function GET(request: NextRequest) {
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       serviceCity: data.serviceCity,
       serviceState: data.serviceState,
       serviceType: data.serviceType,
+      priority: data.priority || "NORMAL",
       generatorBrand: data.generatorBrand,
       generatorModel: data.generatorModel,
       generatorSerial: data.generatorSerial,
@@ -134,25 +135,40 @@ export async function POST(request: NextRequest) {
       html: emailTemplate.html,
     });
 
-    // Notify admins
-    const admins = await User.find({ role: "ADMIN" }).select("_id email");
+    // Notify admins and staff
+    const adminStaff = await User.find({ role: { $in: ["ADMIN", "STAFF"] }, isActive: true }).select("_id email name role");
 
     const adminEmailTemplate = getAdminNewServiceRequestNotificationTemplate(serviceRequestObj);
-    for (const admin of admins) {
-      await sendEmail({
-        to: admin.email,
-        subject: adminEmailTemplate.subject,
-        html: adminEmailTemplate.html,
-      });
+    
+    // Collect staff emails for batch notification
+    const staffEmails: string[] = [];
+    
+    for (const member of adminStaff) {
+      // Send email based on role
+      if (member.role === "ADMIN") {
+        await sendEmail({
+          to: member.email,
+          subject: adminEmailTemplate.subject,
+          html: adminEmailTemplate.html,
+        });
+      } else {
+        // Collect staff emails for batch notification
+        staffEmails.push(member.email);
+      }
 
       await Notification.create({
-        userId: admin._id,
+        userId: member._id,
         type: "SERVICE_REQUEST_SUBMITTED",
         title: "New Service Request",
-        message: `New ${data.serviceType} request from ${data.contactName}`,
-        link: `/admin/services/${serviceRequest._id}`,
+        message: `New ${data.serviceType} request from ${data.contactName}${data.priority && data.priority !== "NORMAL" ? ` (${data.priority} priority)` : ""}`,
+        link: member.role === "ADMIN" ? `/admin/services/${serviceRequest._id}` : `/staff/services/${serviceRequest._id}`,
         serviceRequestId: serviceRequest._id.toString(),
       });
+    }
+    
+    // Send staff notification email
+    if (staffEmails.length > 0) {
+      await sendStaffNewServiceRequestEmail(serviceRequestObj, staffEmails);
     }
 
     return NextResponse.json({

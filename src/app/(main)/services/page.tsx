@@ -30,6 +30,7 @@ const serviceRequestSchema = z.object({
     "EMERGENCY",
     "OTHER",
   ]),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
   generatorBrand: z.string().optional(),
   generatorModel: z.string().optional(),
   generatorSerial: z.string().optional(),
@@ -403,6 +404,48 @@ export default function ServicesPage() {
                     {errors.problemDescription.message}
                   </p>
                 )}
+              </div>
+
+              {/* Priority Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority Level</Label>
+                <p className="text-sm text-muted-foreground">
+                  How urgent is this service request?
+                </p>
+                <Select 
+                  defaultValue="NORMAL"
+                  onValueChange={(value) => setValue("priority", value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-green-500" />
+                        Low - Can wait a few days
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="NORMAL">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        Normal - Standard response time
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="HIGH">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                        High - Need attention soon
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="URGENT">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-red-500" />
+                        Urgent - Needs immediate attention
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Preferred Date/Time */}
