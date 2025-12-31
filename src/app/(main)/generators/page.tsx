@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +40,25 @@ interface Pagination {
   totalPages: number;
 }
 
+function GeneratorsLoading() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    </div>
+  );
+}
+
 export default function GeneratorsPage() {
+  return (
+    <Suspense fallback={<GeneratorsLoading />}>
+      <GeneratorsContent />
+    </Suspense>
+  );
+}
+
+function GeneratorsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [generators, setGenerators] = useState<Generator[]>([]);
