@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Select,
   SelectContent,
@@ -61,8 +62,7 @@ export default function EditGeneratorPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [images, setImages] = useState<{ url: string; alt: string }[]>([]);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const {
     register,
@@ -129,7 +129,7 @@ export default function EditGeneratorPage() {
         isFeatured: generator.isFeatured ?? false,
       });
       
-      setImages(generator.images || []);
+      setImageUrls(generator.images?.map((img: any) => img.url) || []);
     } catch (error) {
       toast({
         title: "Error",
@@ -153,21 +153,20 @@ export default function EditGeneratorPage() {
     }
   };
 
-  const addImage = () => {
-    if (imageUrl) {
-      setImages([...images, { url: imageUrl, alt: watch("name") || "" }]);
-      setImageUrl("");
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+  const handleImagesChange = (urls: string[]) => {
+    setImageUrls(urls);
   };
 
   const onSubmit = async (data: GeneratorFormData) => {
     setLoading(true);
 
     try {
+      const images = imageUrls.map((url, index) => ({
+        url,
+        alt: data.name || "Generator image",
+        isPrimary: index === 0,
+      }));
+
       const response = await fetch(`/api/admin/generators/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -494,40 +493,15 @@ export default function EditGeneratorPage() {
                 <CardTitle>Images</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Image URL"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                  <Button type="button" onClick={addImage}>
-                    Add
-                  </Button>
-                </div>
-                {images.length > 0 && (
-                  <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                    {images.map((img, index) => (
-                      <div key={index} className="relative group">
-                        <div className="aspect-square overflow-hidden rounded-lg border">
-                          <img
-                            src={img.url}
-                            alt={img.alt}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeImage(index)}
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <ImageUpload
+                  value={imageUrls}
+                  onChange={handleImagesChange}
+                  maxImages={10}
+                  folder="generators"
+                />
+                <p className="text-sm text-muted-foreground">
+                  The first image will be used as the primary image.
+                </p>
               </CardContent>
             </Card>
           </div>

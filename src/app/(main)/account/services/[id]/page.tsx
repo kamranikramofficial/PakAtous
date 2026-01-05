@@ -57,6 +57,9 @@ export default function ServiceDetailPage() {
         const res = await fetch(`/api/services/${params.id}`);
         if (res.ok) {
           const data = await res.json();
+          console.log('Service data received:', data);
+          console.log('Images array:', data.images);
+          console.log('Images length:', data.images?.length);
           setService(data);
         }
       } catch (error) {
@@ -233,6 +236,44 @@ export default function ServiceDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Images Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Uploaded Images ({service.images?.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {service.images && Array.isArray(service.images) && service.images.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {service.images.map((image, index) => (
+                    <div key={index} className="aspect-video overflow-hidden rounded-lg border bg-muted">
+                      <img
+                        src={image.url}
+                        alt={image.description || `Issue image ${index + 1}`}
+                        className="h-full w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(image.url, '_blank')}
+                        onError={(e) => {
+                          console.error('Image load error:', image.url);
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-muted-foreground">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">
+                    No images attached to this service request
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Generator Information</CardTitle>
@@ -290,28 +331,6 @@ export default function ServiceDetailPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Images */}
-          {service.images && service.images.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Uploaded Images</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {service.images.map((image, index) => (
-                    <div key={index} className="aspect-video overflow-hidden rounded-lg border">
-                      <img
-                        src={image.url}
-                        alt={image.description || `Issue image ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Sidebar */}

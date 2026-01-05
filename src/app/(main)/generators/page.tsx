@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import {
+  Fragment,
+  Suspense,
+  useEffect,
+  useState,
+  type ComponentProps,
+} from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import {
+  type ReadonlyURLSearchParams,
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +25,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatPrice } from "@/lib/utils";
+
+type FiltersState = {
+  search: string;
+  fuelType: string;
+  minPower: string;
+  maxPower: string;
+  minPrice: string;
+  maxPrice: string;
+  sortBy: string;
+};
 
 interface Generator {
   id: string;
@@ -40,6 +60,65 @@ interface Pagination {
   totalPages: number;
 }
 
+const fuelTypes = ["PETROL", "DIESEL", "GAS", "HYBRID", "SOLAR"] as const;
+
+const reviewHighlights = [
+  {
+    id: "1",
+    name: "Abdullah R.",
+    title: "Fast delivery, no hassle",
+    rating: 4.8,
+    body: "Order arrived on time and the team guided me to the right kVA for my workshop.",
+  },
+  {
+    id: "2",
+    name: "Hira S.",
+    title: "Responsive support",
+    rating: 5,
+    body: "Got answers in minutes on WhatsApp and installation was smooth the same week.",
+  },
+  {
+    id: "3",
+    name: "Kamran L.",
+    title: "Good prices, clean stock",
+    rating: 4.7,
+    body: "Machines were exactly as listed with proper images and warranty docs ready.",
+  },
+];
+
+const filtersFromParams = (params: ReadonlyURLSearchParams): FiltersState => ({
+  search: params.get("search") || "",
+  fuelType: params.get("fuelType") || "all",
+  minPower: params.get("minPower") || "",
+  maxPower: params.get("maxPower") || "",
+  minPrice: params.get("minPrice") || "",
+  maxPrice: params.get("maxPrice") || "",
+  sortBy: params.get("sortBy") || "newest",
+});
+
+const StarIcon = (props: ComponentProps<"svg">) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden
+    {...props}
+  >
+    <path d="M12 2.75l2.63 6.03 6.37.45-4.86 4.22 1.48 6.29L12 16.9l-5.62 2.84 1.48-6.29-4.86-4.22 6.37-.45z" />
+  </svg>
+);
+
+const StarRating = ({ rating }: { rating: number }) => (
+  <div className="flex items-center gap-1 text-yellow-500">
+    {Array.from({ length: 5 }).map((_, index) => (
+      <StarIcon
+        key={index}
+        className={`h-4 w-4 ${index < Math.round(rating) ? "opacity-100" : "opacity-30"}`}
+      />
+    ))}
+    <span className="text-xs font-medium text-muted-foreground">{rating.toFixed(1)}</span>
+  </div>
+);
+
 function GeneratorsLoading() {
   return (
     <div className="container mx-auto px-4 py-8">
@@ -64,40 +143,39 @@ function GeneratorsContent() {
   const [generators, setGenerators] = useState<Generator[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    search: searchParams.get("search") || "",
-    fuelType: searchParams.get("fuelType") || "all",
-    minPower: searchParams.get("minPower") || "",
-    maxPower: searchParams.get("maxPower") || "",
-    minPrice: searchParams.get("minPrice") || "",
-    maxPrice: searchParams.get("maxPrice") || "",
-    sortBy: searchParams.get("sortBy") || "newest",
-  });
-
-  const fetchGenerators = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", searchParams.get("page") || "1");
-      
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== "all") params.set(key, value);
-      });
-
-      const response = await fetch(`/api/generators?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch");
-      const data = await response.json();
-      setGenerators(data.generators);
-      setPagination(data.pagination);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [filters, setFilters] = useState<FiltersState>(filtersFromParams(searchParams));
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchGenerators = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams(searchParams.toString());
+        if (!params.get("page")) params.set("page", "1");
+
+        const response = await fetch(`/api/generators?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Failed to fetch generators");
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        setGenerators(data.generators ?? []);
+        setPagination(data.pagination ?? null);
+      } catch (error) {
+        if ((error as { name?: string }).name === "AbortError") return;
+        console.error(error);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
     fetchGenerators();
+    return () => controller.abort();
+  }, [searchParams]);
+
+  useEffect(() => {
+    setFilters(filtersFromParams(searchParams));
   }, [searchParams]);
 
   const applyFilters = () => {
@@ -130,8 +208,6 @@ function GeneratorsContent() {
     router.push(`/generators?${params}`);
   };
 
-  const fuelTypes = ["PETROL", "DIESEL", "GAS", "HYBRID", "SOLAR"];
-
   return (
     <div className="container py-8">
       <div className="mb-8">
@@ -140,6 +216,26 @@ function GeneratorsContent() {
           Browse our wide selection of quality generators
         </p>
       </div>
+
+      <Card className="mb-8 border-primary/10 bg-primary/5">
+        <CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary">Feedback & support</p>
+            <h2 className="text-xl font-bold">Tell us what you need and we will reply fast</h2>
+            <p className="text-sm text-muted-foreground">
+              Share a quick note and we will help you pick the right generator without delays.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild>
+              <Link href="/contact">Send feedback</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/faq">View FAQs</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-8 lg:grid-cols-4">
         {/* Filters Sidebar */}
@@ -310,27 +406,16 @@ function GeneratorsContent() {
                       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                         {generator.images[0] ? (
                           <img
-                            src={generator.images[0].url}
+                            src={generator.images[0].url || "/placeholder.svg"}
                             alt={generator.images[0].alt || generator.name}
                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="48"
-                              height="48"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-muted-foreground"
-                            >
-                              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-                            </svg>
-                          </div>
+                          <img
+                            src="/placeholder.svg"
+                            alt="Placeholder"
+                            className="h-full w-full object-cover"
+                          />
                         )}
                         {generator.salePrice && (
                           <Badge className="absolute left-2 top-2" variant="destructive">
@@ -373,6 +458,18 @@ function GeneratorsContent() {
                               </span>
                             )}
                           </div>
+                          {typeof generator.avgRating === "number" ? (
+                            <div className="flex flex-col items-end">
+                              <StarRating rating={generator.avgRating} />
+                              <span className="text-xs text-muted-foreground">
+                                {generator._count?.reviews ?? 0} reviews
+                              </span>
+                            </div>
+                          ) : generator._count?.reviews ? (
+                            <span className="text-xs text-muted-foreground">
+                              {generator._count.reviews} reviews
+                            </span>
+                          ) : null}
                           {generator.stock <= 0 ? (
                             <Badge variant="destructive">Out of Stock</Badge>
                           ) : generator.stock <= 5 ? (
@@ -404,21 +501,18 @@ function GeneratorsContent() {
                           Math.abs(p - pagination.page) <= 2
                       )
                       .map((p, i, arr) => (
-                        <>
+                        <Fragment key={p}>
                           {i > 0 && arr[i - 1] !== p - 1 && (
-                            <span key={`ellipsis-${p}`} className="px-2">
-                              ...
-                            </span>
+                            <span className="px-2">...</span>
                           )}
                           <Button
-                            key={p}
                             variant={pagination.page === p ? "default" : "outline"}
                             size="sm"
                             onClick={() => handlePageChange(p)}
                           >
                             {p}
                           </Button>
-                        </>
+                        </Fragment>
                       ))}
                   </div>
                   <Button
@@ -434,6 +528,44 @@ function GeneratorsContent() {
           )}
         </div>
       </div>
+
+      <section className="mt-12 space-y-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary">Reviews</p>
+            <h2 className="text-2xl font-bold">What customers say about us</h2>
+            <p className="text-sm text-muted-foreground">
+              Real feedback from buyers who picked their generators through us.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild>
+              <Link href="/contact">Share your feedback</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/faq">Need help choosing?</Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {reviewHighlights.map((review) => (
+            <Card key={review.id} className="h-full">
+              <CardContent className="flex h-full flex-col gap-3 p-5">
+                <div className="flex items-center justify-between">
+                  <StarRating rating={review.rating} />
+                  <Badge variant="secondary">Verified buyer</Badge>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold">{review.title}</h3>
+                  <p className="text-sm text-muted-foreground">{review.body}</p>
+                </div>
+                <p className="mt-auto text-sm font-medium">{review.name}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

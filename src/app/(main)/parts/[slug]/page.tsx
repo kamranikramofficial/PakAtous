@@ -79,7 +79,7 @@ export default function PartDetailPage() {
       name: part.name,
       price: part.salePrice || part.price,
       quantity,
-      image: part.images[0]?.url || "/placeholder.png",
+      image: part.images[0]?.url || "/placeholder.svg",
       maxStock: part.stock,
     });
 
@@ -137,7 +137,7 @@ export default function PartDetailPage() {
         <div className="space-y-4">
           <div className="aspect-square overflow-hidden rounded-lg border">
             <img
-              src={part.images[selectedImage]?.url || "/placeholder.png"}
+              src={part.images[selectedImage]?.url || "/placeholder.svg"}
               alt={part.images[selectedImage]?.alt || part.name}
               className="h-full w-full object-contain"
             />

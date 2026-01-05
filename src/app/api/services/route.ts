@@ -37,18 +37,13 @@ export async function GET(request: NextRequest) {
       ServiceRequest.countDocuments(query),
     ]);
 
-    // Get images for each request
-    const requestIds = requests.map((r: any) => r._id);
-    const images = await ServiceImage.find({ serviceRequestId: { $in: requestIds } }).lean();
-
-    const requestsWithImages = requests.map((r: any) => ({
+    const requestsWithIds = requests.map((r: any) => ({
       ...r,
       id: r._id.toString(),
-      images: images.filter((img: any) => img.serviceRequestId.toString() === r._id.toString()),
     }));
 
     return NextResponse.json({
-      requests: requestsWithImages,
+      requests: requestsWithIds,
       pagination: {
         page,
         limit,
@@ -76,8 +71,14 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
+    
+    // Debug: Log incoming data
+    console.log('Service Request - Received body:', JSON.stringify(body, null, 2));
+    console.log('Service Request - Images in body:', body.images);
+    
     const validationResult = serviceRequestSchema.safeParse(body);
     if (!validationResult.success) {
+      console.log('Service Request - Validation failed:', validationResult.error.errors);
       return NextResponse.json(
         { error: validationResult.error.errors[0].message },
         { status: 400 }
@@ -85,8 +86,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validationResult.data;
+    
+    // Debug: Log validated data
+    console.log('Service Request - Validated images:', data.images);
 
-    // Create service request
+    // Create service request with embedded images
     const serviceRequest = await ServiceRequest.create({
       requestNumber: generateServiceRequestNumber(),
       userId: session.user.id,
@@ -104,16 +108,13 @@ export async function POST(request: NextRequest) {
       problemTitle: data.problemTitle,
       problemDescription: data.problemDescription,
       preferredDate: data.preferredDate,
+      images: data.images?.length
+        ? data.images.map((url: string) => ({
+            url,
+            description: "",
+          }))
+        : [],
     });
-
-    // Create images if provided
-    if (data.images?.length) {
-      const imageDocuments = data.images.map((url: string) => ({
-        url,
-        serviceRequestId: serviceRequest._id,
-      }));
-      await ServiceImage.insertMany(imageDocuments);
-    }
 
     // Create notification for user
     await Notification.create({

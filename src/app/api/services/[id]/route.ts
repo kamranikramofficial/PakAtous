@@ -32,6 +32,10 @@ export async function GET(
       );
     }
 
+    // Debug log for images
+    console.log('User API - Service images:', (serviceRequest as any).images);
+    console.log('User API - Service images length:', (serviceRequest as any).images?.length);
+
     return NextResponse.json({
       ...serviceRequest,
       id: (serviceRequest as any)._id.toString(),

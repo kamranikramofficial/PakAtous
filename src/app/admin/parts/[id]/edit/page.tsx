@@ -8,14 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { useToast } from "@/components/ui/use-toast";
-
-interface PartImage {
-  id?: string;
-  url: string;
-  alt: string;
-  isPrimary: boolean;
-}
 
 interface Part {
   id: string;
@@ -30,7 +24,7 @@ interface Part {
   categoryId?: string;
   isActive: boolean;
   isFeatured: boolean;
-  images: PartImage[];
+  images: Array<{url: string; alt: string; isPrimary: boolean}>;
 }
 
 export default function EditPartPage() {
@@ -39,8 +33,7 @@ export default function EditPartPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [images, setImages] = useState<PartImage[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -82,7 +75,7 @@ export default function EditPartPage() {
         isFeatured: part.isFeatured ?? false,
       });
       
-      setImages(part.images || []);
+      setImageUrls(part.images?.map((img: any) => img.url) || []);
     } catch (error) {
       toast({
         title: "Error",
@@ -95,30 +88,8 @@ export default function EditPartPage() {
     }
   };
 
-  const addImage = () => {
-    if (!newImageUrl) return;
-    setImages([
-      ...images,
-      { url: newImageUrl, alt: formData.name, isPrimary: images.length === 0 },
-    ]);
-    setNewImageUrl("");
-  };
-
-  const removeImage = (index: number) => {
-    const updated = images.filter((_, i) => i !== index);
-    if (updated.length > 0 && !updated.some((img) => img.isPrimary)) {
-      updated[0].isPrimary = true;
-    }
-    setImages(updated);
-  };
-
-  const setPrimaryImage = (index: number) => {
-    setImages(
-      images.map((img, i) => ({
-        ...img,
-        isPrimary: i === index,
-      }))
-    );
+  const handleImagesChange = (urls: string[]) => {
+    setImageUrls(urls);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,6 +97,12 @@ export default function EditPartPage() {
     setLoading(true);
 
     try {
+      const images = imageUrls.map((url, index) => ({
+        url,
+        alt: formData.name || "Part image",
+        isPrimary: index === 0,
+      }));
+
       const res = await fetch(`/api/admin/parts/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -298,55 +275,15 @@ export default function EditPartPage() {
             <CardTitle>Images</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter image URL"
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-              />
-              <Button type="button" onClick={addImage}>
-                Add Image
-              </Button>
-            </div>
-            {images.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {images.map((image, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-square overflow-hidden rounded-lg border">
-                      <img
-                        src={image.url}
-                        alt={image.alt}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setPrimaryImage(index)}
-                        disabled={image.isPrimary}
-                      >
-                        {image.isPrimary ? "Primary" : "Set Primary"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeImage(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    {image.isPrimary && (
-                      <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                        Primary
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <ImageUpload
+              value={imageUrls}
+              onChange={handleImagesChange}
+              maxImages={10}
+              folder="parts"
+            />
+            <p className="text-sm text-muted-foreground">
+              The first image will be used as the primary image.
+            </p>
           </CardContent>
         </Card>
 

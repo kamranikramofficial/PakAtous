@@ -34,7 +34,7 @@ export default function AccountDashboard() {
         const servicesData = await servicesRes.json();
 
         const orders = ordersData.orders || [];
-        const services = servicesData.serviceRequests || [];
+        const services = servicesData.requests || [];
 
         setStats({
           totalOrders: orders.length,

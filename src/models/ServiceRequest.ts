@@ -74,12 +74,12 @@ export interface IServiceRequest extends Document {
   updatedAt: Date;
 }
 
-// Service Image Schema
+// Service Image Schema (for embedded images in ServiceRequest)
 const serviceImageSchema = new Schema<IServiceImage>(
   {
     url: { type: String, required: true },
     description: { type: String },
-    serviceRequestId: { type: Schema.Types.ObjectId, ref: 'ServiceRequest', required: true },
+    serviceRequestId: { type: Schema.Types.ObjectId, ref: 'ServiceRequest', required: false },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

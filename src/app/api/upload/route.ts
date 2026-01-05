@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { 
-  uploadFile, 
-  deleteFile, 
-  isValidImageType, 
-  isValidFileSize,
-  ImageFolders,
-  type ImageFolder 
-} from '@/lib/storage';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const dynamic = 'force-dynamic';
+
+const VALID_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+async function compressImage(buffer: Buffer, mimetype: string): Promise<Buffer> {
+  // For now, just return the buffer. You can add sharp library for compression
+  // npm install sharp and uncomment below if needed:
+  // const sharp = require('sharp');
+  // return await sharp(buffer).resize(1920, 1920, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
+  return buffer;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const folder = (formData.get('folder') as ImageFolder) || ImageFolders.GENERATORS;
+    const folder = (formData.get('folder') as string) || 'generators';
 
     if (!file) {
       return NextResponse.json(
@@ -34,41 +45,56 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!isValidImageType(file.type)) {
+    if (!VALID_IMAGE_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP, SVG) are allowed.' },
         { status: 400 }
       );
     }
 
-    // Validate file size (10MB max)
-    const buffer = Buffer.from(await file.arrayBuffer());
-    if (!isValidFileSize(buffer.length, 10)) {
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Validate file size
+    if (buffer.length > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'File size exceeds the maximum limit of 10MB.' },
+        { error: 'File size exceeds the maximum limit of 5MB.' },
         { status: 400 }
       );
     }
 
-    // Validate folder
-    const validFolders = Object.values(ImageFolders);
-    if (!validFolders.includes(folder)) {
-      return NextResponse.json(
-        { error: 'Invalid folder specified.' },
-        { status: 400 }
-      );
-    }
+    // Compress image if needed
+    const compressedBuffer = await compressImage(buffer, file.type);
 
-    // Upload to DigitalOcean Spaces
-    const result = await uploadFile(buffer, file.name, file.type, folder);
+    // Upload to Cloudinary
+    const uploadResult = await new Promise<any>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: `pakautose/${folder}`,
+          resource_type: 'image',
+          transformation: [
+            { width: 1920, height: 1920, crop: 'limit' },
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(compressedBuffer);
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        url: result.url,
-        key: result.key,
-        size: result.size,
-        contentType: result.contentType,
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        width: uploadResult.width,
+        height: uploadResult.height,
+        format: uploadResult.format,
+        size: uploadResult.bytes,
       },
     });
   } catch (error) {
@@ -92,16 +118,17 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
+    const publicId = searchParams.get('publicId');
 
-    if (!key) {
+    if (!publicId) {
       return NextResponse.json(
-        { error: 'No file key provided' },
+        { error: 'No publicId provided' },
         { status: 400 }
       );
     }
 
-    await deleteFile(key);
+    // Delete from Cloudinary
+    await cloudinary.uploader.destroy(publicId);
 
     return NextResponse.json({
       success: true,

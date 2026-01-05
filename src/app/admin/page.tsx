@@ -33,8 +33,24 @@ export default function AdminDashboard() {
         const response = await fetch("/api/admin/stats");
         if (!response.ok) throw new Error("Failed to fetch stats");
         const data = await response.json();
-        setStats(data);
+        // Map API response to expected format
+        setStats({
+          totalOrders: data.stats?.totalOrders || 0,
+          totalRevenue: data.stats?.totalRevenue || 0,
+          pendingOrders: data.stats?.pendingOrders || 0,
+          pendingServices: data.stats?.pendingServiceRequests || 0,
+          totalUsers: data.stats?.totalUsers || 0,
+          newUsersThisMonth: data.stats?.newUsersThisMonth || 0,
+          lowStockGenerators: data.stats?.lowStockGenerators || 0,
+          lowStockParts: data.stats?.lowStockParts || 0,
+          monthlyRevenue: data.stats?.monthlyRevenue || 0,
+          lastMonthRevenue: data.stats?.lastMonthRevenue || 0,
+          revenueGrowth: data.stats?.revenueGrowth || 0,
+          recentOrders: data.recentOrders || [],
+          recentServices: data.recentServiceRequests || [],
+        });
       } catch (err) {
+        console.error("Dashboard fetch error:", err);
         setError("Failed to load dashboard data");
       } finally {
         setLoading(false);

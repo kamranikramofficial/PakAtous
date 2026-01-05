@@ -21,6 +21,50 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 
+const serviceReviewHighlights = [
+  {
+    id: "s1",
+    name: "Kashif M.",
+    title: "Arrived the same evening",
+    rating: 5,
+    body: "Called for an emergency outage, team arrived within hours and stabilized our shop power.",
+  },
+  {
+    id: "s2",
+    name: "Maria A.",
+    title: "Clear diagnosis",
+    rating: 4.8,
+    body: "Technician shared photos and costs upfront. No surprises and the genset is smoother now.",
+  },
+  {
+    id: "s3",
+    name: "Talha R.",
+    title: "Professional install",
+    rating: 4.9,
+    body: "New 20kVA install with proper earthing and ATS setup. Documentation and warranty provided.",
+  },
+];
+
+const Star = ({ filled }: { filled: boolean }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={`h-4 w-4 ${filled ? "text-yellow-500" : "text-muted-foreground/40"}`}
+    fill="currentColor"
+    aria-hidden
+  >
+    <path d="M12 2.75l2.63 6.03 6.37.45-4.86 4.22 1.48 6.29L12 16.9l-5.62 2.84 1.48-6.29-4.86-4.22 6.37-.45z" />
+  </svg>
+);
+
+const StarRating = ({ rating }: { rating: number }) => (
+  <div className="flex items-center gap-1">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <Star key={i} filled={i < Math.round(rating)} />
+    ))}
+    <span className="text-xs font-medium text-muted-foreground">{rating.toFixed(1)}</span>
+  </div>
+);
+
 const serviceRequestSchema = z.object({
   serviceType: z.enum([
     "REPAIR",
@@ -128,7 +172,7 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const {
     register,
@@ -139,10 +183,52 @@ export default function ServicesPage() {
     resolver: zodResolver(serviceRequestSchema),
   });
 
-  const addImage = () => {
-    if (imageUrl && images.length < 5) {
-      setImages([...images, imageUrl]);
-      setImageUrl("");
+  const uploadImages = async (files: FileList) => {
+    if (images.length + files.length > 5) {
+      toast({
+        title: "Too many images",
+        description: "You can upload maximum 5 images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'services');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        const result = await response.json();
+        uploadedUrls.push(result.data.url);
+      }
+
+      setImages([...images, ...uploadedUrls]);
+      toast({
+        title: "Images uploaded",
+        description: `${uploadedUrls.length} image(s) uploaded successfully.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -163,6 +249,10 @@ export default function ServicesPage() {
 
     setLoading(true);
     try {
+      // Debug: Log what we're sending
+      console.log('Submitting service request with images:', images);
+      console.log('Form data:', data);
+      
       const response = await fetch("/api/services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -201,6 +291,28 @@ export default function ServicesPage() {
           Professional generator repair, maintenance, and installation services.
           Our certified technicians are ready to help you keep your power running.
         </p>
+      </div>
+
+      <div className="mb-10">
+        <Card className="border-primary/10 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 p-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-primary">Feedback & support</p>
+              <h2 className="text-xl font-bold">Tell us the issue and we will respond quickly</h2>
+              <p className="text-sm text-muted-foreground">
+                Share symptoms or photos; we reply fast so you avoid downtime.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild>
+                <Link href="/contact">Send feedback</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/faq">View FAQs</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Service Types */}
@@ -476,25 +588,27 @@ export default function ServicesPage() {
 
               {/* Images */}
               <div className="space-y-2">
-                <Label>Photos (Optional)</Label>
+                <Label htmlFor="images">Photos (Optional)</Label>
                 <p className="text-sm text-muted-foreground">
                   Upload photos of the issue to help our technicians understand the problem better.
                 </p>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter image URL..."
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addImage}
-                    disabled={images.length >= 5}
-                  >
-                    Add
-                  </Button>
-                </div>
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploading || images.length >= 5}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      uploadImages(e.target.files);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="cursor-pointer"
+                />
+                {uploading && (
+                  <p className="text-sm text-primary">Uploading images...</p>
+                )}
                 {images.length > 0 && (
                   <div className="flex gap-2 flex-wrap mt-2">
                     {images.map((img, index) => (
@@ -518,7 +632,7 @@ export default function ServicesPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground">Maximum 5 images</p>
+                <p className="text-xs text-muted-foreground">Maximum 5 images, 5MB each</p>
               </div>
 
               {/* Submit */}
@@ -550,6 +664,47 @@ export default function ServicesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reviews and feedback */}
+      <section className="mt-16 space-y-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary">Reviews</p>
+            <h2 className="text-2xl font-bold">What service customers say</h2>
+            <p className="text-sm text-muted-foreground">
+              Feedback from owners who booked repairs, installs, and emergency visits.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild>
+              <Link href="/contact">Share your feedback</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/faq">Need help choosing a service?</Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {serviceReviewHighlights.map((review) => (
+            <Card key={review.id} className="h-full">
+              <CardContent className="flex h-full flex-col gap-3 p-5">
+                <div className="flex items-center justify-between">
+                  <StarRating rating={review.rating} />
+                  <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    Verified service
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold">{review.title}</h3>
+                  <p className="text-sm text-muted-foreground">{review.body}</p>
+                </div>
+                <p className="mt-auto text-sm font-medium">{review.name}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       {/* Why Choose Us */}
       <div className="mt-16">

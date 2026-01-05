@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Select,
   SelectContent,
@@ -21,11 +22,11 @@ export default function NewPartPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<{ url: string; alt: string; isPrimary: boolean }[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
+    slug: "",
     sku: "",
     description: "",
     price: "",
@@ -43,30 +44,23 @@ export default function NewPartPage() {
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
 
-  const addImage = () => {
-    if (!newImageUrl) return;
-    setImages([
-      ...images,
-      { url: newImageUrl, alt: formData.name, isPrimary: images.length === 0 },
-    ]);
-    setNewImageUrl("");
+  const generateSlug = () => {
+    if (formData.name) {
+      const slug = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      setFormData({ ...formData, slug });
+    }
+  };
+
+  const handleImagesChange = (urls: string[]) => {
+    setImageUrls(urls);
   };
 
   const removeImage = (index: number) => {
-    const updated = images.filter((_, i) => i !== index);
-    if (updated.length > 0 && !updated.some((img) => img.isPrimary)) {
-      updated[0].isPrimary = true;
-    }
-    setImages(updated);
-  };
-
-  const setPrimaryImage = (index: number) => {
-    setImages(
-      images.map((img, i) => ({
-        ...img,
-        isPrimary: i === index,
-      }))
-    );
+    const updated = imageUrls.filter((_, i) => i !== index);
+    setImageUrls(updated);
   };
 
   const addSpecification = () => {
@@ -93,6 +87,32 @@ export default function NewPartPage() {
     setLoading(true);
 
     try {
+      // Ensure slug is set
+      if (!formData.slug) {
+        const slug = (formData.name || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+        formData.slug = slug;
+      }
+
+      // Ensure price is present
+      if (!formData.price) {
+        toast({
+          title: "Error",
+          description: "Price is required",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const images = imageUrls.map((url, index) => ({
+        url,
+        alt: formData.name || `Part image ${index + 1}`,
+        isPrimary: index === 0,
+      }));
+
       const res = await fetch("/api/admin/parts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,16 +177,50 @@ export default function NewPartPage() {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onBlur={generateSlug}
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">URL Slug *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    placeholder="auto-generated-from-name"
+                    required
+                  />
+                  <Button type="button" variant="outline" onClick={generateSlug}>
+                    Generate
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Used in the URL. Auto-generated from name or customize it.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="sku">SKU *</Label>
                 <Input
                   id="sku"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  placeholder="PART-001"
                   required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Stock Keeping Unit - must be unique
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">Brand</Label>
+                <Input
+                  id="brand"
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  placeholder="Honda, Yamaha, etc."
                 />
               </div>
             </div>
@@ -254,55 +308,15 @@ export default function NewPartPage() {
             <CardTitle>Images</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter image URL"
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-              />
-              <Button type="button" onClick={addImage}>
-                Add Image
-              </Button>
-            </div>
-            {images.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {images.map((image, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-square overflow-hidden rounded-lg border">
-                      <img
-                        src={image.url}
-                        alt={image.alt}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setPrimaryImage(index)}
-                        disabled={image.isPrimary}
-                      >
-                        {image.isPrimary ? "Primary" : "Set Primary"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeImage(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    {image.isPrimary && (
-                      <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                        Primary
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <ImageUpload
+              value={imageUrls}
+              onChange={handleImagesChange}
+              maxImages={10}
+              folder="parts"
+            />
+            <p className="text-sm text-muted-foreground">
+              The first image will be used as the primary image.
+            </p>
           </CardContent>
         </Card>
 

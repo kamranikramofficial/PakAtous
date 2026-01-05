@@ -219,7 +219,7 @@ export default function AdminPartsPage() {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border">
                             <img
-                              src={part.images[0]?.url || "/placeholder.png"}
+                              src={part.images[0]?.url || "/placeholder.svg"}
                               alt={part.name}
                               className="h-full w-full object-cover"
                             />

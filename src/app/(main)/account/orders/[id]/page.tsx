@@ -254,7 +254,7 @@ export default function OrderDetailPage() {
               <div className="space-y-4">
                 {order.items.map((item) => {
                   const product = item.generator || item.part;
-                  const imageUrl = product?.images?.[0]?.url || "/placeholder.png";
+                  const imageUrl = product?.images?.[0]?.url || "/placeholder.svg";
                   const productUrl = item.generator
                     ? `/generators/${product?.slug}`
                     : `/parts/${product?.slug}`;

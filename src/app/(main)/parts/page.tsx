@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,50 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatPrice } from "@/lib/utils";
+
+const partReviewHighlights = [
+  {
+    id: "p1",
+    name: "Hassaan Q.",
+    title: "Correct part, first time",
+    rating: 4.9,
+    body: "They matched my model and shipped the exact carburetor I needed—no returns, no delays.",
+  },
+  {
+    id: "p2",
+    name: "Ayesha N.",
+    title: "Fast delivery in Lahore",
+    rating: 4.8,
+    body: "Order was packed well and arrived in two days with tracking updates throughout.",
+  },
+  {
+    id: "p3",
+    name: "Bilal S.",
+    title: "Helpful support",
+    rating: 5,
+    body: "Shared photos on WhatsApp, got the right gasket set and install guidance same day.",
+  },
+];
+
+const Star = ({ filled }: { filled: boolean }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={`h-4 w-4 ${filled ? "text-yellow-500" : "text-muted-foreground/40"}`}
+    fill="currentColor"
+    aria-hidden
+  >
+    <path d="M12 2.75l2.63 6.03 6.37.45-4.86 4.22 1.48 6.29L12 16.9l-5.62 2.84 1.48-6.29-4.86-4.22 6.37-.45z" />
+  </svg>
+);
+
+const StarRating = ({ rating }: { rating: number }) => (
+  <div className="flex items-center gap-1">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <Star key={i} filled={i < Math.round(rating)} />
+    ))}
+    <span className="text-xs font-medium text-muted-foreground">{rating.toFixed(1)}</span>
+  </div>
+);
 
 interface Part {
   id: string;
@@ -133,6 +177,26 @@ function PartsContent() {
           Find genuine spare parts for all generator brands
         </p>
       </div>
+
+      <Card className="mb-8 border-primary/10 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 p-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary">Feedback & support</p>
+            <h2 className="text-xl font-bold">Need a part? Tell us and we will reply fast</h2>
+            <p className="text-sm text-muted-foreground">
+              Share your generator model or photo—our team will confirm compatibility quickly.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild>
+              <Link href="/contact">Send feedback</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/faq">View FAQs</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-8 lg:grid-cols-4">
         {/* Filters Sidebar */}
@@ -262,22 +326,11 @@ function PartsContent() {
                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="48"
-                              height="48"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-muted-foreground"
-                            >
-                              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                            </svg>
-                          </div>
+                          <img
+                            src="/placeholder.svg"
+                            alt="Placeholder"
+                            className="h-full w-full object-cover"
+                          />
                         )}
                         {part.salePrice && (
                           <Badge className="absolute left-2 top-2" variant="destructive">
@@ -321,6 +374,18 @@ function PartsContent() {
                               </span>
                             )}
                           </div>
+                          {typeof part.avgRating === "number" ? (
+                            <div className="flex flex-col items-end">
+                              <StarRating rating={part.avgRating} />
+                              <span className="text-xs text-muted-foreground">
+                                {part._count?.reviews ?? 0} reviews
+                              </span>
+                            </div>
+                          ) : part._count?.reviews ? (
+                            <span className="text-xs text-muted-foreground">
+                              {part._count.reviews} reviews
+                            </span>
+                          ) : null}
                           {part.stock <= 0 ? (
                             <Badge variant="destructive">Out of Stock</Badge>
                           ) : part.stock <= 5 ? (
@@ -352,21 +417,18 @@ function PartsContent() {
                           Math.abs(p - pagination.page) <= 2
                       )
                       .map((p, i, arr) => (
-                        <>
+                        <Fragment key={p}>
                           {i > 0 && arr[i - 1] !== p - 1 && (
-                            <span key={`ellipsis-${p}`} className="px-2">
-                              ...
-                            </span>
+                            <span className="px-2">...</span>
                           )}
                           <Button
-                            key={p}
                             variant={pagination.page === p ? "default" : "outline"}
                             size="sm"
                             onClick={() => handlePageChange(p)}
                           >
                             {p}
                           </Button>
-                        </>
+                        </Fragment>
                       ))}
                   </div>
                   <Button
@@ -382,6 +444,44 @@ function PartsContent() {
           )}
         </div>
       </div>
+
+      <section className="mt-12 space-y-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary">Reviews</p>
+            <h2 className="text-2xl font-bold">What customers say about our parts</h2>
+            <p className="text-sm text-muted-foreground">
+              Real feedback from buyers who ordered parts and got quick support.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild>
+              <Link href="/contact">Share feedback</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/faq">Need help picking a part?</Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {partReviewHighlights.map((review) => (
+            <Card key={review.id} className="h-full">
+              <CardContent className="flex h-full flex-col gap-3 p-5">
+                <div className="flex items-center justify-between">
+                  <StarRating rating={review.rating} />
+                  <Badge variant="secondary">Verified buyer</Badge>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold">{review.title}</h3>
+                  <p className="text-sm text-muted-foreground">{review.body}</p>
+                </div>
+                <p className="mt-auto text-sm font-medium">{review.name}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

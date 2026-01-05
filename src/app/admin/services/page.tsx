@@ -239,8 +239,7 @@ export default function AdminServicesPage() {
                   <th className="p-4 text-left font-medium">Request #</th>
                   <th className="p-4 text-left font-medium">Customer</th>
                   <th className="p-4 text-left font-medium">Type</th>
-                  <th className="p-4 text-left font-medium">Generator</th>
-                  <th className="p-4 text-left font-medium">Status</th>
+                  <th className="p-4 text-left font-medium">Generator</th>                  <th className="p-4 text-left font-medium">Images</th>                  <th className="p-4 text-left font-medium">Status</th>
                   <th className="p-4 text-left font-medium">Estimated</th>
                   <th className="p-4 text-left font-medium">Date</th>
                   <th className="p-4 text-right font-medium">Actions</th>
@@ -249,7 +248,7 @@ export default function AdminServicesPage() {
               <tbody>
                 {services.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       No service requests found
                     </td>
                   </tr>
@@ -270,6 +269,27 @@ export default function AdminServicesPage() {
                       <td className="p-4">
                         <p className="font-medium">{service.generatorBrand || "-"}</p>
                         <p className="text-sm text-muted-foreground">{service.generatorModel || "-"}</p>
+                      </td>
+                      <td className="p-4">
+                        {service.images && service.images.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            {service.images.slice(0, 2).map((img: any, idx: number) => (
+                              <img
+                                key={idx}
+                                src={img.url}
+                                alt={`Preview ${idx + 1}`}
+                                className="h-8 w-8 object-cover rounded border"
+                              />
+                            ))}
+                            {service.images.length > 2 && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                +{service.images.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </td>
                       <td className="p-4">{getStatusBadge(service.status)}</td>
                       <td className="p-4">

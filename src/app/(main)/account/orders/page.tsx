@@ -188,7 +188,7 @@ export default function OrdersPage() {
                 <div className="space-y-4">
                   {order.items.slice(0, 3).map((item) => {
                     const product = item.generator || item.part;
-                    const imageUrl = product?.images?.[0]?.url || "/placeholder.png";
+                    const imageUrl = product?.images?.[0]?.url || "/placeholder.svg";
                     return (
                       <div key={item.id} className="flex items-center gap-4">
                         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border">

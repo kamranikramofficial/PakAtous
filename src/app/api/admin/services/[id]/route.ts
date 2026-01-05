@@ -57,6 +57,10 @@ export async function GET(
       );
     }
 
+    // Debug log for images
+    console.log('API - Service images:', (service as any).images);
+    console.log('API - Service images length:', (service as any).images?.length);
+
     // Get user info
     const user = await User.findById((service as any).userId)
       .select('name email phone address')

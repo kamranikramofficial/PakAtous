@@ -96,7 +96,7 @@ export default function GeneratorDetailPage() {
         name: generator.name,
         price: generator.salePrice || generator.price,
         quantity,
-        image: generator.images[0]?.url,
+        image: generator.images[0]?.url || "/placeholder.svg",
         maxStock: generator.stock,
       });
 
@@ -192,27 +192,16 @@ export default function GeneratorDetailPage() {
           <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
             {generator.images[selectedImage] ? (
               <img
-                src={generator.images[selectedImage].url}
+                src={generator.images[selectedImage].url || "/placeholder.svg"}
                 alt={generator.images[selectedImage].alt || generator.name}
                 className="h-full w-full object-contain"
               />
             ) : (
-              <div className="flex h-full items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="64"
-                  height="64"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-muted-foreground"
-                >
-                  <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-              </div>
+              <img
+                src="/placeholder.svg"
+                alt="Placeholder"
+                className="h-full w-full object-contain"
+              />
             )}
             {discount > 0 && (
               <Badge className="absolute left-4 top-4" variant="destructive">
@@ -233,7 +222,7 @@ export default function GeneratorDetailPage() {
                   }`}
                 >
                   <img
-                    src={image.url}
+                    src={image.url || "/placeholder.svg"}
                     alt={image.alt || `${generator.name} ${index + 1}`}
                     className="h-20 w-20 object-cover"
                   />

@@ -51,6 +51,9 @@ export default function StaffServiceDetailPage() {
       const res = await fetch(`/api/admin/services/${params.id}`);
       if (res.ok) {
         const data = await res.json();
+        console.log('Staff - Service data received:', data.service);
+        console.log('Staff - Images array:', data.service?.images);
+        console.log('Staff - Images length:', data.service?.images?.length);
         setService(data.service);
         setInternalNotes(data.service.internalNotes || "");
         setQuotedPrice(data.service.quotedPrice?.toString() || "");
@@ -199,27 +202,43 @@ export default function StaffServiceDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Images */}
-          {service.images && service.images.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Attached Images</CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Images Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Attached Images ({service.images?.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {service.images && Array.isArray(service.images) && service.images.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {service.images.map((img: any, index: number) => (
-                    <div key={index} className="aspect-video overflow-hidden rounded-lg border">
+                    <div key={index} className="aspect-video overflow-hidden rounded-lg border bg-muted">
                       <img
                         src={img.url}
                         alt={`Service image ${index + 1}`}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(img.url, '_blank')}
+                        onError={(e) => {
+                          console.error('Image load error:', img.url);
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
                       />
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="text-center py-8">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-muted-foreground">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">
+                    No images attached to this service request
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Staff Actions */}
           <Card>

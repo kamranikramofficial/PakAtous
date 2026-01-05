@@ -18,6 +18,14 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { ImageUpload } from "@/components/ui/image-upload";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const conditions = [
   { value: "NEW", label: "Brand New (Unused)" },
@@ -42,8 +50,8 @@ export default function SellGeneratorPage() {
   const [loading, setLoading] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [images, setImages] = useState<{ url: string; isPrimary: boolean }[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [viewingListing, setViewingListing] = useState<any | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -97,21 +105,8 @@ export default function SellGeneratorPage() {
     }
   };
 
-  const addImage = () => {
-    if (!newImageUrl) return;
-    setImages([
-      ...images,
-      { url: newImageUrl, isPrimary: images.length === 0 },
-    ]);
-    setNewImageUrl("");
-  };
-
-  const removeImage = (index: number) => {
-    const updated = images.filter((_, i) => i !== index);
-    if (updated.length > 0 && !updated.some((img) => img.isPrimary)) {
-      updated[0].isPrimary = true;
-    }
-    setImages(updated);
+  const handleImagesChange = (urls: string[]) => {
+    setImageUrls(urls);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,9 +149,24 @@ export default function SellGeneratorPage() {
       return;
     }
     
+    if (imageUrls.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one image",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
+      // Convert imageUrls to images format with primary flag
+      const images = imageUrls.map((url, index) => ({
+        url,
+        isPrimary: index === 0,
+      }));
+
       const res = await fetch("/api/user/generators", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -196,7 +206,7 @@ export default function SellGeneratorPage() {
           contactCity: "",
           contactAddress: "",
         });
-        setImages([]);
+        setImageUrls([]);
         fetchListings();
       } else {
         const error = await res.json();
@@ -282,6 +292,13 @@ export default function SellGeneratorPage() {
                         </p>
                       )}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewingListing(listing)}
+                    >
+                      View Details
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -522,44 +539,12 @@ export default function SellGeneratorPage() {
                 <CardTitle>Images</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter image URL"
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                  />
-                  <Button type="button" onClick={addImage} variant="outline">
-                    Add
-                  </Button>
-                </div>
-
-                {images.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {images.map((img, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={img.url}
-                          alt={`Image ${index + 1}`}
-                          className="w-full aspect-square object-cover rounded-lg border"
-                        />
-                        {img.isPrimary && (
-                          <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                            Primary
-                          </span>
-                        )}
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeImage(index)}
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <ImageUpload
+                  value={imageUrls}
+                  onChange={handleImagesChange}
+                  maxImages={10}
+                  folder="user-listings"
+                />
                 <p className="text-sm text-muted-foreground">
                   Add clear photos of your generator from multiple angles. First image will be the primary image.
                 </p>
@@ -653,6 +638,176 @@ export default function SellGeneratorPage() {
             </div>
           </form>
         )}
+
+        {/* View Details Dialog */}
+        <Dialog open={!!viewingListing} onOpenChange={(open) => !open && setViewingListing(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{viewingListing?.title}</DialogTitle>
+              <DialogDescription>
+                Your generator listing details
+              </DialogDescription>
+            </DialogHeader>
+            {viewingListing && (
+              <div className="space-y-4">
+                {/* Images */}
+                {viewingListing.images?.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium">Images</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                      {viewingListing.images.map((img: any, i: number) => (
+                        <div key={i} className="relative aspect-video overflow-hidden rounded-lg border">
+                          <img
+                            src={img.url}
+                            alt={`Image ${i + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          {img.isPrimary && (
+                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs">
+                              Primary
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Details Grid */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label className="text-muted-foreground">Brand & Model</Label>
+                    <p className="font-medium">{viewingListing.brand} {viewingListing.generatorModel}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Condition</Label>
+                    <p className="font-medium">{viewingListing.condition?.replace("_", " ")}</p>
+                  </div>
+                  {viewingListing.year && (
+                    <div>
+                      <Label className="text-muted-foreground">Year</Label>
+                      <p className="font-medium">{viewingListing.year}</p>
+                    </div>
+                  )}
+                  {viewingListing.runningHours && (
+                    <div>
+                      <Label className="text-muted-foreground">Running Hours</Label>
+                      <p className="font-medium">{viewingListing.runningHours}</p>
+                    </div>
+                  )}
+                  {viewingListing.power && (
+                    <div>
+                      <Label className="text-muted-foreground">Power Output</Label>
+                      <p className="font-medium">{viewingListing.power}</p>
+                    </div>
+                  )}
+                  {viewingListing.fuelType && (
+                    <div>
+                      <Label className="text-muted-foreground">Fuel Type</Label>
+                      <p className="font-medium">{viewingListing.fuelType}</p>
+                    </div>
+                  )}
+                  {viewingListing.engineType && (
+                    <div>
+                      <Label className="text-muted-foreground">Engine Type</Label>
+                      <p className="font-medium">{viewingListing.engineType}</p>
+                    </div>
+                  )}
+                  {viewingListing.serialNumber && (
+                    <div>
+                      <Label className="text-muted-foreground">Serial Number</Label>
+                      <p className="font-medium">{viewingListing.serialNumber}</p>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-muted-foreground">Asking Price</Label>
+                    <p className="font-medium text-primary text-lg">
+                      PKR {viewingListing.askingPrice?.toLocaleString()}
+                      {viewingListing.negotiable && <span className="text-sm text-muted-foreground ml-1">(Negotiable)</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div className="mt-1">{getStatusBadge(viewingListing.status)}</div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <p className="mt-1 text-sm">{viewingListing.description}</p>
+                </div>
+
+                {viewingListing.reasonForSelling && (
+                  <div>
+                    <Label className="text-muted-foreground">Reason for Selling</Label>
+                    <p className="mt-1 text-sm">{viewingListing.reasonForSelling}</p>
+                  </div>
+                )}
+
+                {/* Admin Notes */}
+                {viewingListing.adminNotes && (
+                  <div className="border-t pt-4">
+                    <Label className="text-muted-foreground">Admin Notes</Label>
+                    <p className="mt-1 text-sm">{viewingListing.adminNotes}</p>
+                  </div>
+                )}
+
+                {/* Rejection Reason */}
+                {viewingListing.status === "REJECTED" && viewingListing.rejectionReason && (
+                  <div className="border-t pt-4">
+                    <Label className="text-destructive">Rejection Reason</Label>
+                    <p className="mt-1 text-sm text-destructive">{viewingListing.rejectionReason}</p>
+                  </div>
+                )}
+
+                {/* Purchase Info */}
+                {viewingListing.status === "SOLD" && viewingListing.purchasedPrice && (
+                  <div className="border-t pt-4">
+                    <Label className="text-green-600">Sold</Label>
+                    <p className="mt-1 text-sm text-green-600">
+                      Purchased for PKR {viewingListing.purchasedPrice?.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Contact Info */}
+                <div className="border-t pt-4">
+                  <Label className="font-medium mb-2 block">Contact Information</Label>
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Name</Label>
+                      <p>{viewingListing.contactName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Phone</Label>
+                      <p>{viewingListing.contactPhone}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Email</Label>
+                      <p>{viewingListing.contactEmail}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">City</Label>
+                      <p>{viewingListing.contactCity}</p>
+                    </div>
+                    {viewingListing.contactAddress && (
+                      <div className="sm:col-span-2">
+                        <Label className="text-muted-foreground">Address</Label>
+                        <p>{viewingListing.contactAddress}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Submission Date */}
+                <div className="text-xs text-muted-foreground pt-4 border-t">
+                  Submitted on {new Date(viewingListing.createdAt).toLocaleString()}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

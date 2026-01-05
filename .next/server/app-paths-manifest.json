@@ -1,10 +1,15 @@
 {
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/not-found": "app/not-found.js",
-  "/api/contact/route": "app/api/contact/route.js",
-  "/admin/user-listings/page": "app/admin/user-listings/page.js",
-  "/(main)/sell-generator/page": "app/(main)/sell-generator/page.js",
-  "/staff/services/page": "app/staff/services/page.js",
-  "/(main)/contact/page": "app/(main)/contact/page.js",
-  "/staff/page": "app/staff/page.js"
+  "/api/orders/route": "app/api/orders/route.js",
+  "/api/services/route": "app/api/services/route.js",
+  "/api/generators/route": "app/api/generators/route.js",
+  "/api/generators/[slug]/route": "app/api/generators/[slug]/route.js",
+  "/api/cart/route": "app/api/cart/route.js",
+  "/admin/page": "app/admin/page.js",
+  "/(main)/generators/[slug]/page": "app/(main)/generators/[slug]/page.js",
+  "/(main)/cart/page": "app/(main)/cart/page.js",
+  "/(main)/generators/page": "app/(main)/generators/page.js",
+  "/(main)/checkout/page": "app/(main)/checkout/page.js",
+  "/(main)/orders/[id]/confirmation/page": "app/(main)/orders/[id]/confirmation/page.js",
+  "/(main)/account/page": "app/(main)/account/page.js"
 }

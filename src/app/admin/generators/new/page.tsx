@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Select,
   SelectContent,
@@ -17,49 +18,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 
 const generatorSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  slug: z.string().min(3, "Slug must be at least 3 characters").regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
   shortDescription: z.string().optional(),
   brand: z.string().min(1, "Brand is required"),
   modelName: z.string().optional(),
+  model: z.string().optional(),
   sku: z.string().optional(),
-  price: z.number().positive("Price must be positive"),
-  compareAtPrice: z.number().positive().optional().nullable(),
-  costPrice: z.number().positive().optional().nullable(),
-  stock: z.number().int().min(0, "Stock cannot be negative"),
-  lowStockThreshold: z.number().int().min(0).default(5),
-  powerKva: z.number().positive("Power (kVA) must be positive"),
-  powerKw: z.number().positive("Power (kW) must be positive"),
+  price: z.coerce.number().positive("Price must be positive"),
+  compareAtPrice: z.coerce.number().positive().optional().nullable(),
+  costPrice: z.coerce.number().positive().optional().nullable(),
+  stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
+  lowStockThreshold: z.coerce.number().int().min(0).default(5),
+  powerKva: z.coerce.number().positive("Power (kVA) must be positive"),
+  powerKw: z.coerce.number().positive("Power (kW) must be positive"),
   voltage: z.string().optional(),
-  fuelType: z.enum(["PETROL", "DIESEL", "GAS", "DUAL_FUEL", "NATURAL_GAS"]),
+  fuelType: z.enum(["DIESEL", "PETROL", "GAS", "DUAL_FUEL", "NATURAL_GAS"]),
   engineBrand: z.string().optional(),
   alternatorBrand: z.string().optional(),
   startingSystem: z.string().optional(),
   fuelConsumption: z.string().optional(),
-  frequency: z.string().optional(),
-  phase: z.string().optional(),
-  tankCapacity: z.number().positive().optional().nullable(),
+  frequency: z.string().default("50Hz"),
+  phase: z.string().default("Single Phase"),
+  tankCapacity: z.coerce.number().positive().optional().nullable(),
   runtime: z.string().optional(),
   noiseLevel: z.string().optional(),
-  weight: z.number().positive().optional().nullable(),
+  weight: z.coerce.number().positive().optional().nullable(),
   dimensions: z.string().optional(),
   warranty: z.string().optional(),
-  condition: z.enum(["NEW", "USED", "REFURBISHED"]).default("NEW"),
+  condition: z.enum(["NEW", "REFURBISHED", "USED"]).default("NEW"),
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
+  categoryId: z.string().optional().nullable(),
 });
 
 type GeneratorFormData = z.infer<typeof generatorSchema>;
 
 export default function NewGeneratorPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [images, setImages] = useState<{ url: string; alt: string }[]>([]);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const {
     register,
@@ -90,22 +93,31 @@ export default function NewGeneratorPage() {
     }
   };
 
-  const addImage = () => {
-    if (imageUrl) {
-      setImages([...images, { url: imageUrl, alt: watch("name") || "" }]);
-      setImageUrl("");
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+  const handleImagesChange = (urls: string[]) => {
+    setImageUrls(urls);
   };
 
   const onSubmit = async (data: GeneratorFormData) => {
     setLoading(true);
-    setError(null);
 
     try {
+      // Validate slug is at least 3 chars
+      if (!data.slug || data.slug.length < 3) {
+        toast({
+          title: "Error",
+          description: "Slug must be at least 3 characters",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const images = imageUrls.map((url, index) => ({
+        url,
+        alt: data.name || `Generator image ${index + 1}`,
+        isPrimary: index === 0,
+      }));
+
       const response = await fetch("/api/admin/generators", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,9 +130,17 @@ export default function NewGeneratorPage() {
         throw new Error(result.error || "Failed to create generator");
       }
 
+      toast({
+        title: "Generator created",
+        description: "The generator has been created successfully.",
+      });
       router.push("/admin/generators");
     } catch (err: any) {
-      setError(err.message);
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -143,12 +163,6 @@ export default function NewGeneratorPage() {
           </p>
         </div>
       </div>
-
-      {error && (
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive">
-          {error}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid gap-6 lg:grid-cols-3">
@@ -449,44 +463,12 @@ export default function NewGeneratorPage() {
                 <CardTitle>Images</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter image URL..."
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                  <Button type="button" variant="outline" onClick={addImage}>
-                    Add Image
-                  </Button>
-                </div>
-                {images.length > 0 && (
-                  <div className="grid grid-cols-4 gap-4">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image.url}
-                          alt={image.alt}
-                          className="h-24 w-full rounded object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                          </svg>
-                        </button>
-                        {index === 0 && (
-                          <span className="absolute bottom-1 left-1 rounded bg-primary px-1 text-xs text-white">
-                            Primary
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <ImageUpload
+                  value={imageUrls}
+                  onChange={handleImagesChange}
+                  maxImages={10}
+                  folder="generators"
+                />
                 <p className="text-sm text-muted-foreground">
                   The first image will be used as the primary image.
                 </p>
