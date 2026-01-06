@@ -55,8 +55,8 @@ function LoginContent() {
           description: "Welcome back!",
           variant: "success",
         });
-        router.push(callbackUrl);
-        router.refresh();
+        // Use window.location for hard redirect to ensure proper navigation
+        window.location.href = callbackUrl;
       }
     } catch (error) {
       toast({
