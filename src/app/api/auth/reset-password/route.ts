@@ -4,6 +4,8 @@ import dbConnect from "@/lib/prisma";
 import { User, PasswordResetToken } from "@/models/User";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Reset token is required"),
   password: z

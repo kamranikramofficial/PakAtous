@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 // Test email endpoint - REMOVE IN PRODUCTION
 export async function POST(request: NextRequest) {
   try {

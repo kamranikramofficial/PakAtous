@@ -3,6 +3,8 @@ import dbConnect from "@/lib/prisma";
 import { Part, PartImage, PartCategory } from "@/models/Part";
 import { Review } from "@/models/Review";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();

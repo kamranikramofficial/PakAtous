@@ -5,6 +5,8 @@ import { User, PasswordResetToken } from "@/models/User";
 import { forgotPasswordSchema } from "@/lib/validations";
 import { sendEmail, getPasswordResetEmailTemplate } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();

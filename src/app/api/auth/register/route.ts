@@ -8,6 +8,8 @@ import { Cart } from "@/models/Cart";
 import { Notification } from "@/models/Notification";
 import { sendEmail, getVerificationEmailTemplate } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 // API-specific schema (no confirmPassword needed as it's validated on frontend)
 const apiRegisterSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
