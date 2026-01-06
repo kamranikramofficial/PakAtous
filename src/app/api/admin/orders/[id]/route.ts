@@ -14,7 +14,8 @@ import {
   sendDeliveryConfirmationEmail,
   sendOrderCancellationEmail,
   sendRefundConfirmationEmail,
-  sendOrderInternalNotesEmail
+  sendOrderInternalNotesEmail,
+  sendPaymentConfirmationEmail
 } from "@/lib/email";
 
 // Get single order (admin/staff)
@@ -69,6 +70,18 @@ export async function GET(
     // Get user info
     const orderUser = (order as any).userId;
 
+    // Build shippingAddress object for frontend compatibility
+    const shippingAddress = (order as any).shippingName || (order as any).shippingAddressLine ? {
+      fullName: (order as any).shippingName || '',
+      address: (order as any).shippingAddressLine || '',
+      city: (order as any).shippingCity || '',
+      state: (order as any).shippingState || '',
+      postalCode: (order as any).shippingPostalCode || '',
+      country: (order as any).shippingCountry || 'Pakistan',
+      phone: (order as any).shippingPhone || '',
+      email: (order as any).shippingEmail || '',
+    } : null;
+
     return NextResponse.json({
       order: {
         ...(order as any),
@@ -79,6 +92,8 @@ export async function GET(
           email: orderUser.email,
           phone: orderUser.phone,
         } : null,
+        shippingAddress,
+        totalAmount: (order as any).total, // Alias for staff page
         items: formattedItems,
       },
       auditLogs: auditLogs.map((log: any) => ({ ...log, id: log._id.toString() })),
@@ -115,7 +130,7 @@ export async function PUT(
       );
     }
 
-    const { status, adminNotes, internalNotes, trackingNumber, carrier, estimatedDelivery } = validationResult.data;
+    const { status, paymentStatus, adminNotes, internalNotes, trackingNumber, carrier, estimatedDelivery } = validationResult.data;
 
     const order = await Order.findById(id);
     
@@ -127,11 +142,13 @@ export async function PUT(
     const orderUser = order.userId ? await User.findById(order.userId).select('email name').lean() : null;
 
     const oldStatus = order.status;
+    const oldPaymentStatus = order.paymentStatus;
     const oldInternalNotes = order.internalNotes || '';
 
     // Build update data
     const updateData: any = {};
     if (status) updateData.status = status;
+    if (paymentStatus) updateData.paymentStatus = paymentStatus;
     if (trackingNumber) updateData.trackingNumber = trackingNumber;
     if (carrier) updateData.carrier = carrier;
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
@@ -141,6 +158,7 @@ export async function PUT(
       updateData.trackingNumber = trackingNumber;
     }
     if (status === "DELIVERED") updateData.deliveredAt = new Date();
+    if (paymentStatus === "PAID" && oldPaymentStatus !== "PAID") updateData.paidAt = new Date();
 
     // Update order
     const updatedOrder = await Order.findByIdAndUpdate(id, updateData, { new: true }).lean();
@@ -151,9 +169,10 @@ export async function PUT(
       action: "UPDATE",
       entity: "ORDER",
       entityId: id,
-      oldValues: JSON.stringify({ status: oldStatus }),
+      oldValues: JSON.stringify({ status: oldStatus, paymentStatus: oldPaymentStatus }),
       newValues: JSON.stringify({
         status: status || oldStatus,
+        paymentStatus: paymentStatus || oldPaymentStatus,
         trackingNumber,
         adminNotes,
       }),
@@ -161,14 +180,16 @@ export async function PUT(
 
     // Send email notification if status changed
     if (status && status !== oldStatus) {
-      // Create notification for user
-      await Notification.create({
-        user: order.userId,
-        type: "ORDER_UPDATE",
-        title: "Order Status Updated",
-        message: `Your order #${order.orderNumber} status has been updated to ${status}`,
-        link: `/account/orders/${order._id}`,
-      });
+      // Create notification for user (only if registered user)
+      if (order.userId) {
+        await Notification.create({
+          userId: order.userId,
+          type: "ORDER_UPDATE",
+          title: "Order Status Updated",
+          message: `Your order #${order.orderNumber} status has been updated to ${status}`,
+          link: `/account/orders/${order._id}`,
+        });
+      }
 
       // Prepare order data for emails
       const orderEmailData = {
@@ -203,8 +224,37 @@ export async function PUT(
       }
     }
 
+    // Send payment confirmation email if payment status changed to PAID
+    if (paymentStatus && paymentStatus !== oldPaymentStatus && paymentStatus === "PAID") {
+      // Create notification for user (only if registered user)
+      if (order.userId) {
+        await Notification.create({
+          userId: order.userId,
+          type: "PAYMENT_RECEIVED",
+          title: "Payment Received",
+          message: `Payment received for your order #${order.orderNumber}. Thank you!`,
+          link: `/account/orders/${order._id}`,
+        });
+      }
+
+      // Send payment confirmation email
+      if (orderUser?.email || order.shippingEmail) {
+        try {
+          const orderEmailData = {
+            ...(updatedOrder as any),
+            id: (updatedOrder as any)._id.toString(),
+            user: { email: orderUser?.email, name: orderUser?.name },
+            shippingEmail: order.shippingEmail || orderUser?.email,
+          };
+          await sendPaymentConfirmationEmail(orderEmailData);
+          console.log("Payment confirmation email sent successfully");
+        } catch (emailError) {
+          console.error("Failed to send payment confirmation email:", emailError);
+        }
+      }
+    }
+
     // Handle refund if order is cancelled and was paid
-    const oldPaymentStatus = order.paymentStatus;
     if (status === "CANCELLED" && oldPaymentStatus === "PAID") {
       // Restore stock
       const { Generator } = await import("@/models/Generator");

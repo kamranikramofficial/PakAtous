@@ -274,9 +274,9 @@ export default function StaffOrderDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="font-medium">{order.user?.name || "Guest"}</p>
-                <p className="text-sm text-muted-foreground">{order.user?.email}</p>
-                <p className="text-sm text-muted-foreground">{order.user?.phone}</p>
+                <p className="font-medium">{order.user?.name || order.shippingAddress?.fullName || order.shippingName || "Guest"}</p>
+                <p className="text-sm text-muted-foreground">{order.user?.email || order.shippingAddress?.email || order.shippingEmail}</p>
+                <p className="text-sm text-muted-foreground">{order.user?.phone || order.shippingAddress?.phone || order.shippingPhone}</p>
               </div>
             </CardContent>
           </Card>
@@ -287,15 +287,15 @@ export default function StaffOrderDetailPage() {
               <CardTitle>Shipping Address</CardTitle>
             </CardHeader>
             <CardContent>
-              {order.shippingAddress ? (
+              {order.shippingAddress || order.shippingName || order.shippingAddressLine ? (
                 <div className="space-y-1 text-sm">
-                  <p className="font-medium">{order.shippingAddress.fullName}</p>
-                  <p className="text-muted-foreground">{order.shippingAddress.address}</p>
+                  <p className="font-medium">{order.shippingAddress?.fullName || order.shippingName}</p>
+                  <p className="text-muted-foreground">{order.shippingAddress?.address || order.shippingAddressLine}</p>
                   <p className="text-muted-foreground">
-                    {order.shippingAddress.city}, {order.shippingAddress.state}
+                    {order.shippingAddress?.city || order.shippingCity}, {order.shippingAddress?.state || order.shippingState}
                   </p>
-                  <p className="text-muted-foreground">{order.shippingAddress.postalCode}</p>
-                  <p className="text-muted-foreground">{order.shippingAddress.phone}</p>
+                  <p className="text-muted-foreground">{order.shippingAddress?.postalCode || order.shippingPostalCode}</p>
+                  <p className="text-muted-foreground">{order.shippingAddress?.phone || order.shippingPhone}</p>
                 </div>
               ) : (
                 <p className="text-muted-foreground">No shipping address</p>

@@ -1,5 +1,10 @@
 {
   "pages": {
+    "/admin/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/layout.js"
+    ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -11,25 +16,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
+    "/admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/page.js"
+    ],
+    "/admin/orders/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/orders/page.js"
+    ],
+    "/admin/orders/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/orders/[id]/page.js"
+    ],
+    "/admin/parts/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/parts/page.js"
+    ],
+    "/(main)/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/page.js"
+    ],
     "/(main)/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(main)/layout.js"
-    ],
-    "/(main)/account/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/account/page.js"
-    ],
-    "/(main)/account/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/account/layout.js"
-    ],
-    "/(main)/contact/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/contact/page.js"
     ],
     "/auth/layout": [
       "static/chunks/webpack.js",
@@ -41,55 +56,55 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/login/page.js"
     ],
-    "/(main)/page": [
+    "/(main)/account/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(main)/page.js"
+      "static/chunks/app/(main)/account/page.js"
     ],
-    "/admin/page": [
+    "/(main)/account/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/page.js"
+      "static/chunks/app/(main)/account/layout.js"
     ],
-    "/admin/layout": [
+    "/admin/users/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/layout.js"
+      "static/chunks/app/admin/users/page.js"
     ],
-    "/admin/generators/page": [
+    "/staff/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/generators/page.js"
+      "static/chunks/app/staff/page.js"
     ],
-    "/admin/parts/page": [
+    "/staff/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/parts/page.js"
+      "static/chunks/app/staff/layout.js"
     ],
-    "/(main)/generators/page": [
+    "/staff/orders/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(main)/generators/page.js"
+      "static/chunks/app/staff/orders/[id]/page.js"
     ],
-    "/(main)/generators/[slug]/page": [
+    "/staff/orders/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(main)/generators/[slug]/page.js"
+      "static/chunks/app/staff/orders/page.js"
     ],
-    "/(main)/cart/page": [
+    "/(main)/account/orders/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(main)/cart/page.js"
+      "static/chunks/app/(main)/account/orders/[id]/page.js"
     ],
-    "/(main)/checkout/page": [
+    "/(main)/account/orders/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(main)/checkout/page.js"
+      "static/chunks/app/(main)/account/orders/page.js"
     ],
-    "/(main)/orders/[id]/confirmation/page": [
+    "/admin/coupons/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(main)/orders/[id]/confirmation/page.js"
+      "static/chunks/app/admin/coupons/page.js"
     ]
   }
 }

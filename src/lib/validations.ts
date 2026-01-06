@@ -221,6 +221,7 @@ export const checkoutSchema = z.object({
 
 export const updateOrderStatusSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "REFUNDED"]).optional(),
+  paymentStatus: z.enum(["PENDING", "PAID", "FAILED", "REFUNDED"]).optional(),
   adminNotes: z.string().optional(),
   internalNotes: z.string().optional(),
   trackingNumber: z.string().optional(),

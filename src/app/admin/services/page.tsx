@@ -42,6 +42,7 @@ interface ServiceRequest {
   contactEmail: string;
   contactPhone: string;
   serviceCity: string;
+  images?: { url: string; alt?: string }[];
   user?: {
     id: string;
     name: string;

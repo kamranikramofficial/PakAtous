@@ -88,6 +88,7 @@ export default function AdminOrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
   
   const [status, setStatus] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
@@ -133,10 +134,10 @@ export default function AdminOrderDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
+          paymentStatus,
           trackingNumber: trackingNumber || undefined,
           carrier: carrier || undefined,
           adminNotes: adminNotes || undefined,
-          internalNotes: internalNotes,
         }),
       });
 
@@ -158,6 +159,38 @@ export default function AdminOrderDetailPage() {
       });
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleSaveInternalNotes = async () => {
+    setSavingNotes(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          internalNotes: internalNotes,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save notes");
+
+      toast({
+        title: "Notes Saved",
+        description: "Internal notes updated. Staff will be notified via email.",
+      });
+
+      // Refresh order data
+      const data = await res.json();
+      setOrder(data.order);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save internal notes",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNotes(false);
     }
   };
 
@@ -407,25 +440,41 @@ export default function AdminOrderDetailPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Internal Notes (Staff Communication)</Label>
-                <Textarea
-                  value={internalNotes}
-                  onChange={(e) => setInternalNotes(e.target.value)}
-                  placeholder="Add notes for staff communication. Staff will be notified via email."
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Staff members will receive email notifications when you add notes here.
-                </p>
-              </div>
-
               <Button
                 onClick={handleUpdate}
                 disabled={updating}
                 className="w-full"
               >
                 {updating ? "Updating..." : "Update Order"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Staff Communication Notes - Separate Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-blue-600">Staff Communication</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Internal Notes</Label>
+                <Textarea
+                  value={internalNotes}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                  placeholder="Add notes for staff communication..."
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Staff members will receive email notifications when you save notes here.
+                </p>
+              </div>
+              <Button
+                onClick={handleSaveInternalNotes}
+                disabled={savingNotes}
+                className="w-full"
+                variant="outline"
+              >
+                {savingNotes ? "Saving..." : "Save & Notify Staff"}
               </Button>
             </CardContent>
           </Card>
