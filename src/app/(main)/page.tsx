@@ -9,6 +9,7 @@ import { Generator, GeneratorImage } from "@/models/Generator";
 import { Part, PartImage } from "@/models/Part";
 import { Brand } from "@/models/Brand";
 import { formatPrice } from "@/lib/utils";
+import { FeaturesSection } from "@/components/home/features-section";
 
 async function getFeaturedGenerators() {
   await dbConnect();
@@ -63,29 +64,6 @@ async function getBrands() {
   
   return brands.map((b: any) => ({ ...b, id: b._id.toString() }));
 }
-
-const features = [
-  {
-    icon: Shield,
-    title: "Quality Guaranteed",
-    description: "All generators come with manufacturer warranty and quality assurance.",
-  },
-  {
-    icon: Truck,
-    title: "Fast Delivery",
-    description: "Free shipping on orders over Rs. 50,000. Nationwide delivery available.",
-  },
-  {
-    icon: Headphones,
-    title: "24/7 Support",
-    description: "Our expert team is available round the clock for assistance.",
-  },
-  {
-    icon: Wrench,
-    title: "Professional Service",
-    description: "Expert technicians for installation, repair, and maintenance.",
-  },
-];
 
 const services = [
   {
@@ -155,24 +133,8 @@ export default async function HomePage() {
         <div className="absolute -bottom-10 left-1/2 h-20 w-[200%] -translate-x-1/2 bg-background" style={{ borderRadius: "100% 100% 0 0" }} />
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 md:py-24">
-        <div className="container-custom">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((feature) => (
-              <div key={feature.title} className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">{feature.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Features Section - Dynamic from Settings */}
+      <FeaturesSection />
 
       {/* Featured Generators */}
       <section className="bg-muted/30 py-16 md:py-24">

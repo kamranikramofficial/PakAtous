@@ -1,10 +1,5 @@
 {
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/admin/coupons/route": "app/api/admin/coupons/route.js",
-  "/staff/orders/[id]/page": "app/staff/orders/[id]/page.js",
-  "/admin/orders/[id]/page": "app/admin/orders/[id]/page.js",
-  "/(main)/page": "app/(main)/page.js",
-  "/admin/coupons/page": "app/admin/coupons/page.js",
-  "/(main)/account/orders/[id]/page": "app/(main)/account/orders/[id]/page.js",
-  "/(main)/account/orders/page": "app/(main)/account/orders/page.js"
+  "/api/settings/route": "app/api/settings/route.js",
+  "/(main)/contact/page": "app/(main)/contact/page.js"
 }

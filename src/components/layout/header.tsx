@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
+import { useSettings } from "@/contexts/settings-context";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -48,6 +49,7 @@ export function Header() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const cartItemCount = useCartStore((state) => state.getItemCount());
+  const { settings } = useSettings();
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -62,11 +64,21 @@ export function Header() {
       <nav className="container-custom flex h-16 items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Zap className="h-6 w-6 text-white" />
-          </div>
+          {settings.general.siteLogo ? (
+            <Image
+              src={settings.general.siteLogo}
+              alt={settings.general.siteName}
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              <Zap className="h-6 w-6 text-white" />
+            </div>
+          )}
           <span className="hidden font-heading text-xl font-bold sm:block">
-            PakAutoSe
+            {settings.general.siteName}
           </span>
         </Link>
 
@@ -109,14 +121,14 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
                     {session.user.image ? (
                       <Image
                         src={session.user.image}
                         alt={session.user.name || "User"}
                         width={32}
                         height={32}
-                        className="rounded-full"
+                        className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
                       <span className="text-sm font-medium">

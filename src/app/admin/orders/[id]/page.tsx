@@ -274,26 +274,33 @@ export default function AdminOrderDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {order.items.map((item) => {
+                {order.items && order.items.length > 0 ? order.items.map((item) => {
                   const product = item.generator || item.part;
                   const productType = item.generator ? "generators" : "parts";
+                  const productName = item.name || product?.name || "Product";
                   return (
                     <div key={item.id} className="flex items-center justify-between border-b pb-4 last:border-0">
                       <div>
-                        <Link
-                          href={`/${productType}/${product?.slug}`}
-                          className="font-medium hover:text-primary"
-                        >
-                          {product?.name || "Product"}
-                        </Link>
+                        {product?.slug ? (
+                          <Link
+                            href={`/${productType}/${product.slug}`}
+                            className="font-medium hover:text-primary"
+                          >
+                            {productName}
+                          </Link>
+                        ) : (
+                          <span className="font-medium">{productName}</span>
+                        )}
                         <p className="text-sm text-muted-foreground">
                           Qty: {item.quantity} × {formatPrice(item.price)}
                         </p>
                       </div>
-                      <p className="font-semibold">{formatPrice(item.total)}</p>
+                      <p className="font-semibold">{formatPrice(item.total || item.quantity * item.price)}</p>
                     </div>
                   );
-                })}
+                }) : (
+                  <p className="text-muted-foreground text-center py-4">No items found</p>
+                )}
               </div>
               <div className="mt-4 border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
@@ -310,16 +317,10 @@ export default function AdminOrderDetailPage() {
                     <span>{formatPrice(order.tax)}</span>
                   </div>
                 )}
-                {order.couponDiscount > 0 && (
+                {(order.couponDiscount > 0 || order.discount > 0) && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Coupon ({order.couponCode})</span>
-                    <span>-{formatPrice(order.couponDiscount)}</span>
-                  </div>
-                )}
-                {order.discount > 0 && order.discount !== order.couponDiscount && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount</span>
-                    <span>-{formatPrice(order.discount)}</span>
+                    <span>Discount {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                    <span>-{formatPrice(order.couponDiscount || order.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">

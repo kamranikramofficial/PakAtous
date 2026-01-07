@@ -16,3 +16,4 @@ export * from './Banner';
 export * from './Page';
 export * from './ContactInquiry';
 export * from './AuditLog';
+export * from './DeletedUser';

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
 import { useToast } from "@/components/ui/use-toast";
+import { useSettings } from "@/contexts/settings-context";
 
 interface Generator {
   id: string;
@@ -50,6 +51,61 @@ interface Generator {
   }[];
   avgRating?: number;
   _count?: { reviews: number };
+}
+
+// Generator Quick Info component with dynamic settings
+function GeneratorQuickInfo() {
+  const { settings, formatPrice: formatSettingsPrice } = useSettings();
+  const freeThreshold = parseFloat(settings.shipping.freeShippingThreshold) || 50000;
+  
+  return (
+    <Card>
+      <CardContent className="grid grid-cols-2 gap-4 p-4">
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+            <rect x="1" y="3" width="15" height="13" />
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+          <div className="text-sm">
+            <p className="font-medium">Free Delivery</p>
+            <p className="text-muted-foreground">On orders above {formatSettingsPrice(freeThreshold)}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <div className="text-sm">
+            <p className="font-medium">Genuine Product</p>
+            <p className="text-muted-foreground">100% Authentic</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          <div className="text-sm">
+            <p className="font-medium">Easy Returns</p>
+            <p className="text-muted-foreground">7-day return policy</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+            <circle cx="12" cy="13" r="3" />
+          </svg>
+          <div className="text-sm">
+            <p className="font-medium">Support</p>
+            <p className="text-muted-foreground">24/7 Customer Support</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function GeneratorDetailPage() {
@@ -395,52 +451,7 @@ export default function GeneratorDetailPage() {
           </div>
 
           {/* Quick Info */}
-          <Card>
-            <CardContent className="grid grid-cols-2 gap-4 p-4">
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <rect x="1" y="3" width="15" height="13" />
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                  <circle cx="5.5" cy="18.5" r="2.5" />
-                  <circle cx="18.5" cy="18.5" r="2.5" />
-                </svg>
-                <div className="text-sm">
-                  <p className="font-medium">Free Delivery</p>
-                  <p className="text-muted-foreground">On orders above PKR 100,000</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-                  <path d="m9 12 2 2 4-4" />
-                </svg>
-                <div className="text-sm">
-                  <p className="font-medium">Genuine Product</p>
-                  <p className="text-muted-foreground">100% Authentic</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                </svg>
-                <div className="text-sm">
-                  <p className="font-medium">Easy Returns</p>
-                  <p className="text-muted-foreground">7-day return policy</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                  <circle cx="12" cy="13" r="3" />
-                </svg>
-                <div className="text-sm">
-                  <p className="font-medium">Support</p>
-                  <p className="text-muted-foreground">24/7 Customer Support</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <GeneratorQuickInfo />
         </div>
       </div>
 

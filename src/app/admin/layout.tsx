@@ -235,9 +235,24 @@ export default function AdminLayout({
           </button>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              Welcome, {session.user.name}
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+                {session.user.image ? (
+                  <img
+                    src={session.user.image}
+                    alt={session.user.name || "Admin"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-medium">
+                    {session.user.name?.[0]?.toUpperCase() || "A"}
+                  </span>
+                )}
+              </div>
+              <span className="text-sm text-gray-600">
+                {session.user.name}
+              </span>
+            </div>
             <Button
               variant="outline"
               size="sm"

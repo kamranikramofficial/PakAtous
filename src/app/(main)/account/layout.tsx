@@ -110,8 +110,18 @@ export default function AccountLayout({
         <aside className="lg:w-64 lg:flex-shrink-0">
           <div className="sticky top-24 space-y-4">
             <div className="flex items-center gap-3 rounded-lg bg-muted p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                {session.user.name?.charAt(0).toUpperCase() || "U"}
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+                {session.user.image ? (
+                  <img
+                    src={session.user.image}
+                    alt={session.user.name || "User"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-medium">
+                    {session.user.name?.charAt(0).toUpperCase() || "U"}
+                  </span>
+                )}
               </div>
               <div>
                 <p className="font-semibold">{session.user.name}</p>

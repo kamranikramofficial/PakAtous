@@ -200,13 +200,13 @@ export default function StaffOrderDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {order.items?.map((item: any, index: number) => (
+                {order.items?.length > 0 ? order.items.map((item: any, index: number) => (
                   <div key={index} className="flex gap-4 p-4 border rounded-lg">
-                    <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">
-                      {item.generator?.images?.[0]?.url || item.part?.images?.[0]?.url ? (
+                    <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                      {item.imageUrl || item.generator?.images?.[0]?.url || item.part?.images?.[0]?.url ? (
                         <img
-                          src={item.generator?.images?.[0]?.url || item.part?.images?.[0]?.url}
-                          alt={item.generator?.name || item.part?.name}
+                          src={item.imageUrl || item.generator?.images?.[0]?.url || item.part?.images?.[0]?.url}
+                          alt={item.name || item.generator?.name || item.part?.name}
                           className="h-full w-full object-cover rounded-lg"
                         />
                       ) : (
@@ -216,38 +216,44 @@ export default function StaffOrderDetailPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">{item.generator?.name || item.part?.name || "Item"}</p>
+                      <p className="font-medium">{item.name || item.generator?.name || item.part?.name || "Product"}</p>
                       <p className="text-sm text-muted-foreground">
                         Qty: {item.quantity} × PKR {item.price?.toLocaleString()}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">PKR {(item.quantity * item.price)?.toLocaleString()}</p>
+                      <p className="font-medium">PKR {(item.total || item.quantity * item.price)?.toLocaleString()}</p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-muted-foreground text-center py-4">No items found</p>
+                )}
               </div>
 
               <div className="mt-6 pt-6 border-t space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>PKR {order.subtotal?.toLocaleString()}</span>
+                  <span>PKR {(order.subtotal || 0).toLocaleString()}</span>
                 </div>
-                {order.shippingCost > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Shipping</span>
+                  <span>{order.shippingCost > 0 ? `PKR ${order.shippingCost.toLocaleString()}` : "Free"}</span>
+                </div>
+                {order.tax > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span>Shipping</span>
-                    <span>PKR {order.shippingCost?.toLocaleString()}</span>
+                    <span>Tax</span>
+                    <span>PKR {order.tax.toLocaleString()}</span>
                   </div>
                 )}
-                {order.discount > 0 && (
+                {(order.couponDiscount > 0 || order.discount > 0) && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount</span>
-                    <span>-PKR {order.discount?.toLocaleString()}</span>
+                    <span>Discount {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                    <span>-PKR {(order.couponDiscount || order.discount || 0).toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-lg pt-2 border-t">
                   <span>Total</span>
-                  <span>PKR {order.totalAmount?.toLocaleString()}</span>
+                  <span>PKR {(order.total || order.totalAmount || 0).toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>

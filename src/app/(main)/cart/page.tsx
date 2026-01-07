@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
 import { useToast } from "@/components/ui/use-toast";
+import { useSettings } from "@/contexts/settings-context";
 
 export default function CartPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCartStore();
+  const { settings, getShippingCost } = useSettings();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
@@ -81,7 +83,8 @@ export default function CartPage() {
   };
 
   const subtotal = getSubtotal();
-  const shipping = subtotal >= 100000 ? 0 : 2500;
+  const freeShippingThreshold = parseFloat(settings.shipping.freeShippingThreshold) || 50000;
+  const shipping = getShippingCost(subtotal);
   const total = subtotal + shipping;
 
   if (loading) {
@@ -280,9 +283,9 @@ export default function CartPage() {
                   )}
                 </span>
               </div>
-              {subtotal < 100000 && (
+              {subtotal < freeShippingThreshold && (
                 <p className="text-sm text-muted-foreground">
-                  Add {formatPrice(100000 - subtotal)} more for free shipping
+                  Add {formatPrice(freeShippingThreshold - subtotal)} more for free shipping
                 </p>
               )}
               <div className="border-t pt-4">

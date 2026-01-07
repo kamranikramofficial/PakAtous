@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/prisma";
-import { Order } from "@/models/Order";
+import { Order, OrderItem } from "@/models/Order";
 import { User } from "@/models/User";
 import { AuditLog } from "@/models/AuditLog";
 import { Notification } from "@/models/Notification";
 import { updateOrderStatusSchema } from "@/lib/validations";
+import { Generator, GeneratorImage } from "@/models/Generator";
+import { Part, PartImage } from "@/models/Part";
 export const dynamic = 'force-dynamic';
 import { 
   sendOrderStatusEmail, 
@@ -35,13 +37,39 @@ export async function GET(
 
     const order = await Order.findById(id)
       .populate("userId", "name email phone")
-      .populate("items.generatorId", "name slug")
-      .populate("items.partId", "name slug")
       .lean();
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
+
+    // Fetch items from OrderItem collection (items might be stored separately)
+    let orderItems = (order as any).items || [];
+    
+    // If embedded items are empty, try fetching from OrderItem collection
+    if (!orderItems || orderItems.length === 0) {
+      const separateItems = await OrderItem.find({ orderId: id })
+        .populate("generatorId", "name slug")
+        .populate("partId", "name slug")
+        .lean();
+      orderItems = separateItems;
+    }
+
+    // Fetch product images for items
+    const generatorIds = orderItems.filter((i: any) => i.generatorId).map((i: any) => 
+      typeof i.generatorId === 'object' ? i.generatorId._id : i.generatorId
+    );
+    const partIds = orderItems.filter((i: any) => i.partId).map((i: any) => 
+      typeof i.partId === 'object' ? i.partId._id : i.partId
+    );
+
+    const [genImages, partImages] = await Promise.all([
+      generatorIds.length > 0 ? GeneratorImage.find({ generatorId: { $in: generatorIds }, isPrimary: true }).lean() : [],
+      partIds.length > 0 ? PartImage.find({ partId: { $in: partIds }, isPrimary: true }).lean() : [],
+    ]);
+
+    const genImgMap = new Map((genImages as any[]).map((i: any) => [i.generatorId.toString(), i]));
+    const partImgMap = new Map((partImages as any[]).map((i: any) => [i.partId.toString(), i]));
 
     // Get audit logs
     const auditLogs = await AuditLog.find({
@@ -52,20 +80,35 @@ export async function GET(
       .lean();
 
     // Format items with id field and proper names
-    const formattedItems = (order as any).items.map((item: any) => ({
-      ...item,
-      id: item._id?.toString() || item.id,
-      generator: item.generatorId ? {
-        id: item.generatorId._id?.toString() || item.generatorId.toString(),
-        name: item.generatorId.name || item.name,
-        slug: item.generatorId.slug,
-      } : null,
-      part: item.partId ? {
-        id: item.partId._id?.toString() || item.partId.toString(),
-        name: item.partId.name || item.name,
-        slug: item.partId.slug,
-      } : null,
-    }));
+    const formattedItems = (orderItems || []).map((item: any) => {
+      const genId = typeof item.generatorId === 'object' ? item.generatorId?._id?.toString() : item.generatorId?.toString();
+      const partId = typeof item.partId === 'object' ? item.partId?._id?.toString() : item.partId?.toString();
+      const genImg = genId ? genImgMap.get(genId) : null;
+      const partImg = partId ? partImgMap.get(partId) : null;
+      
+      return {
+        id: item._id?.toString() || item.id,
+        name: item.name || (typeof item.generatorId === 'object' ? item.generatorId?.name : null) || (typeof item.partId === 'object' ? item.partId?.name : null) || "Product",
+        sku: item.sku,
+        price: item.price || 0,
+        quantity: item.quantity || 1,
+        total: item.total || (item.price * item.quantity) || 0,
+        imageUrl: item.imageUrl || (genImg as any)?.url || (partImg as any)?.url,
+        itemType: item.itemType,
+        generator: item.generatorId && typeof item.generatorId === 'object' ? {
+          id: item.generatorId._id?.toString(),
+          name: item.generatorId.name,
+          slug: item.generatorId.slug,
+          images: genImg ? [genImg] : [],
+        } : null,
+        part: item.partId && typeof item.partId === 'object' ? {
+          id: item.partId._id?.toString(),
+          name: item.partId.name,
+          slug: item.partId.slug,
+          images: partImg ? [partImg] : [],
+        } : null,
+      };
+    });
 
     // Get user info
     const orderUser = (order as any).userId;

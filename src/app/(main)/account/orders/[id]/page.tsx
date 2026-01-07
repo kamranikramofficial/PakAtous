@@ -254,24 +254,40 @@ export default function OrderDetailPage() {
               <div className="space-y-4">
                 {order.items.map((item) => {
                   const product = item.generator || item.part;
-                  const imageUrl = product?.images?.[0]?.url || "/placeholder.svg";
-                  const productUrl = item.generator
-                    ? `/generators/${product?.slug}`
-                    : `/parts/${product?.slug}`;
+                  const productName = item.name || product?.name || "Product";
+                  const imageUrl = item.imageUrl || product?.images?.[0]?.url || "/placeholder.svg";
+                  const productSlug = product?.slug;
+                  const productUrl = productSlug 
+                    ? (item.generator ? `/generators/${productSlug}` : `/parts/${productSlug}`)
+                    : "#";
 
                   return (
                     <div key={item.id} className="flex gap-4">
-                      <Link href={productUrl} className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border">
-                        <img
-                          src={imageUrl}
-                          alt={product?.name || "Product"}
-                          className="h-full w-full object-cover"
-                        />
-                      </Link>
+                      <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border">
+                        {productSlug ? (
+                          <Link href={productUrl}>
+                            <img
+                              src={imageUrl}
+                              alt={productName}
+                              className="h-full w-full object-cover"
+                            />
+                          </Link>
+                        ) : (
+                          <img
+                            src={imageUrl}
+                            alt={productName}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </div>
                       <div className="flex-1">
-                        <Link href={productUrl} className="font-medium hover:text-primary">
-                          {product?.name}
-                        </Link>
+                        {productSlug ? (
+                          <Link href={productUrl} className="font-medium hover:text-primary">
+                            {productName}
+                          </Link>
+                        ) : (
+                          <span className="font-medium">{productName}</span>
+                        )}
                         <p className="text-sm text-muted-foreground">
                           {item.generator ? "Generator" : "Part"}
                         </p>
@@ -280,7 +296,7 @@ export default function OrderDetailPage() {
                             {formatPrice(item.price)} × {item.quantity}
                           </span>
                           <span className="font-medium">
-                            {formatPrice(item.price * item.quantity)}
+                            {formatPrice(item.total || item.price * item.quantity)}
                           </span>
                         </div>
                       </div>
@@ -359,16 +375,10 @@ export default function OrderDetailPage() {
                   <span>{formatPrice(order.tax)}</span>
                 </div>
               )}
-              {order.couponDiscount > 0 && (
+              {(order.couponDiscount > 0 || order.discount > 0) && (
                 <div className="flex justify-between text-green-600">
-                  <span>Coupon Discount {order.couponCode && `(${order.couponCode})`}</span>
-                  <span>-{formatPrice(order.couponDiscount)}</span>
-                </div>
-              )}
-              {order.discount > 0 && order.discount !== order.couponDiscount && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span>-{formatPrice(order.discount)}</span>
+                  <span>Discount {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                  <span>-{formatPrice(order.couponDiscount || order.discount)}</span>
                 </div>
               )}
               <div className="border-t pt-4">

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/contexts/settings-context";
 
 const checkoutSchema = z.object({
   shippingName: z.string().min(2, "Full name is required"),
@@ -36,6 +37,7 @@ export default function CheckoutPage() {
   const { data: session, status } = useSession();
   const { toast } = useToast();
   const { items, getSubtotal, clearCart } = useCartStore();
+  const { settings, getShippingCost, isCODEnabled } = useSettings();
   
   const [loading, setLoading] = useState(false);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -45,7 +47,10 @@ export default function CheckoutPage() {
     discount: number;
     type: string;
   } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"CASH_ON_DELIVERY" | "BANK_TRANSFER">("CASH_ON_DELIVERY");
+  
+  // Determine default payment method based on settings
+  const defaultPaymentMethod = isCODEnabled() ? "CASH_ON_DELIVERY" : "BANK_TRANSFER";
+  const [paymentMethod, setPaymentMethod] = useState<"CASH_ON_DELIVERY" | "BANK_TRANSFER">(defaultPaymentMethod);
 
   const {
     register,
@@ -72,13 +77,16 @@ export default function CheckoutPage() {
   }, [session, status, router, items.length]);
 
   const subtotal = getSubtotal();
-  const shipping = subtotal >= 100000 ? 0 : 2500;
+  const shipping = getShippingCost(subtotal);
+  const codFee = paymentMethod === "CASH_ON_DELIVERY" && isCODEnabled() 
+    ? parseFloat(settings.shipping.codFee) || 0 
+    : 0;
   const discount = couponApplied
     ? couponApplied.type === "PERCENTAGE"
       ? (subtotal * couponApplied.discount) / 100
       : couponApplied.discount
     : 0;
-  const total = subtotal + shipping - discount;
+  const total = subtotal + shipping + codFee - discount;
 
   const applyCoupon = async () => {
     const code = watch("couponCode");
@@ -302,58 +310,80 @@ export default function CheckoutPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                      paymentMethod === "CASH_ON_DELIVERY"
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-muted-foreground"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value="CASH_ON_DELIVERY"
-                      checked={paymentMethod === "CASH_ON_DELIVERY"}
-                      onChange={() => {
-                        setPaymentMethod("CASH_ON_DELIVERY");
-                        setValue("paymentMethod", "CASH_ON_DELIVERY");
-                      }}
-                      className="h-4 w-4"
-                    />
-                    <div>
-                      <p className="font-medium">Cash on Delivery</p>
-                      <p className="text-sm text-muted-foreground">
-                        Pay when you receive your order
-                      </p>
-                    </div>
-                  </label>
+                  {isCODEnabled() && (
+                    <label
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
+                        paymentMethod === "CASH_ON_DELIVERY"
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-muted-foreground"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="CASH_ON_DELIVERY"
+                        checked={paymentMethod === "CASH_ON_DELIVERY"}
+                        onChange={() => {
+                          setPaymentMethod("CASH_ON_DELIVERY");
+                          setValue("paymentMethod", "CASH_ON_DELIVERY");
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <p className="font-medium">Cash on Delivery</p>
+                        <p className="text-sm text-muted-foreground">
+                          Pay when you receive your order
+                          {parseFloat(settings.shipping.codFee) > 0 && (
+                            <span className="block text-xs">+{formatPrice(parseFloat(settings.shipping.codFee))} COD fee</span>
+                          )}
+                        </p>
+                      </div>
+                    </label>
+                  )}
 
-                  <label
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                      paymentMethod === "BANK_TRANSFER"
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-muted-foreground"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value="BANK_TRANSFER"
-                      checked={paymentMethod === "BANK_TRANSFER"}
-                      onChange={() => {
-                        setPaymentMethod("BANK_TRANSFER");
-                        setValue("paymentMethod", "BANK_TRANSFER");
-                      }}
-                      className="h-4 w-4"
-                    />
-                    <div>
-                      <p className="font-medium">Bank Transfer</p>
-                      <p className="text-sm text-muted-foreground">
-                        Pay via bank transfer
-                      </p>
-                    </div>
-                  </label>
+                  {settings.payment.enableBankTransfer === "true" && (
+                    <label
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
+                        paymentMethod === "BANK_TRANSFER"
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-muted-foreground"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="BANK_TRANSFER"
+                        checked={paymentMethod === "BANK_TRANSFER"}
+                        onChange={() => {
+                          setPaymentMethod("BANK_TRANSFER");
+                          setValue("paymentMethod", "BANK_TRANSFER");
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <p className="font-medium">Bank Transfer</p>
+                        <p className="text-sm text-muted-foreground">
+                          Pay via bank transfer
+                        </p>
+                      </div>
+                    </label>
+                  )}
                 </div>
 
-                {paymentMethod === "BANK_TRANSFER" && (
+                {paymentMethod === "BANK_TRANSFER" && settings.payment.bankName && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-2">
+                    <p className="text-sm font-medium text-blue-800">Bank Details:</p>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      {settings.payment.bankName && <p><strong>Bank:</strong> {settings.payment.bankName}</p>}
+                      {settings.payment.bankAccountTitle && <p><strong>Account Title:</strong> {settings.payment.bankAccountTitle}</p>}
+                      {settings.payment.bankAccountNumber && <p><strong>Account No:</strong> {settings.payment.bankAccountNumber}</p>}
+                      {settings.payment.bankIBAN && <p><strong>IBAN:</strong> {settings.payment.bankIBAN}</p>}
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Please send payment proof to {settings.general.siteEmail}
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === "BANK_TRANSFER" && !settings.payment.bankName && (
                   <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                     <p className="text-sm text-blue-700">
                       Bank details will be sent to your email after placing the order.
@@ -477,7 +507,14 @@ export default function CheckoutPage() {
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
+                    <span className="text-muted-foreground">
+                      Shipping
+                      {shipping === 0 && (
+                        <span className="block text-xs text-green-600">
+                          Free on orders over {formatPrice(parseFloat(settings.shipping.freeShippingThreshold))}
+                        </span>
+                      )}
+                    </span>
                     <span>
                       {shipping === 0 ? (
                         <span className="text-green-600">Free</span>
@@ -486,6 +523,12 @@ export default function CheckoutPage() {
                       )}
                     </span>
                   </div>
+                  {codFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">COD Fee</span>
+                      <span>{formatPrice(codFee)}</span>
+                    </div>
+                  )}
                   {discount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
@@ -496,6 +539,11 @@ export default function CheckoutPage() {
                     <span>Total</span>
                     <span>{formatPrice(total)}</span>
                   </div>
+                  {settings.shipping.estimatedDeliveryDays && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Estimated delivery: {settings.shipping.estimatedDeliveryDays} business days
+                    </p>
+                  )}
                 </div>
 
                 <Button

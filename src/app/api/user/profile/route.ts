@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, phone, address, city, state, postalCode, country } = body;
+    const { name, phone, address, city, state, postalCode, country, image } = body;
 
     // Validate required fields
     if (!name || name.trim().length < 2) {
@@ -57,17 +57,24 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const updateData: any = {
+      name: name.trim(),
+      phone: phone?.trim() || null,
+      address: address?.trim() || null,
+      city: city?.trim() || null,
+      state: state?.trim() || null,
+      postalCode: postalCode?.trim() || null,
+      country: country?.trim() || "Pakistan",
+    };
+
+    // Only update image if it's provided (can be empty string to remove)
+    if (image !== undefined) {
+      updateData.image = image || null;
+    }
+
     const user = await User.findByIdAndUpdate(
       session.user.id,
-      {
-        name: name.trim(),
-        phone: phone?.trim() || null,
-        address: address?.trim() || null,
-        city: city?.trim() || null,
-        state: state?.trim() || null,
-        postalCode: postalCode?.trim() || null,
-        country: country?.trim() || "Pakistan",
-      },
+      updateData,
       { new: true }
     )
       .select('name email phone address city state postalCode country image')

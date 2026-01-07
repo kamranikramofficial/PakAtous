@@ -17,6 +17,14 @@ export enum UserStatus {
 }
 
 // Interface
+// Two-Factor Authentication interface
+export interface ITwoFactorSecret {
+  enabled: boolean;
+  secret?: string;
+  backupCodes?: string[];
+  enabledAt?: Date;
+}
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name?: string;
@@ -32,6 +40,7 @@ export interface IUser extends Document {
   state?: string;
   postalCode?: string;
   country: string;
+  twoFactorSecret?: ITwoFactorSecret;
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date;
@@ -53,6 +62,12 @@ const userSchema = new Schema<IUser>(
     state: { type: String },
     postalCode: { type: String },
     country: { type: String, default: 'Pakistan' },
+    twoFactorSecret: {
+      enabled: { type: Boolean, default: false },
+      secret: { type: String },
+      backupCodes: [{ type: String }],
+      enabledAt: { type: Date },
+    },
     lastLoginAt: { type: Date },
   },
   {

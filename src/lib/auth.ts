@@ -135,6 +135,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
+        session.user.image = token.image as string | null | undefined;
       }
       return session;
     },
