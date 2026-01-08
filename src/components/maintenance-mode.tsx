@@ -8,11 +8,14 @@ interface MaintenanceModeProps {
 }
 
 export function MaintenanceMode({ children }: MaintenanceModeProps) {
-  const { settings, isMaintenanceMode, loading } = useSettings();
-  const { data: session } = useSession();
+  const { settings, loading: settingsLoading } = useSettings();
+  const { data: session, status } = useSession();
   
-  // Show loading state
-  if (loading) {
+  // Check maintenance mode directly from settings
+  const maintenanceEnabled = settings.general.maintenanceMode === "true";
+  
+  // Show loading state while settings or session is loading
+  if (settingsLoading || status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -24,7 +27,7 @@ export function MaintenanceMode({ children }: MaintenanceModeProps) {
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
   
   // Show maintenance page if maintenance mode is enabled and user is not admin
-  if (isMaintenanceMode() && !isAdmin) {
+  if (maintenanceEnabled && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
         <div className="text-center px-4">

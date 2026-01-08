@@ -10,6 +10,7 @@ import { Part, PartImage } from "@/models/Part";
 import { Brand } from "@/models/Brand";
 import { formatPrice } from "@/lib/utils";
 import { FeaturesSection } from "@/components/home/features-section";
+import { CTASection } from "./page-cta";
 
 async function getFeaturedGenerators() {
   await dbConnect();
@@ -324,28 +325,7 @@ export default async function HomePage() {
       )}
 
       {/* CTA Section */}
-      <section className="bg-primary py-16 md:py-24">
-        <div className="container-custom text-center">
-          <h2 className="font-heading text-3xl font-bold text-white md:text-4xl">
-            Need Help Choosing the Right Generator?
-          </h2>
-          <p className="mt-4 text-lg text-primary-foreground/80">
-            Our experts are here to help you find the perfect power solution for your needs.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/contact">
-              <Button size="lg" variant="secondary">
-                Contact Us
-              </Button>
-            </Link>
-            <Link href="tel:+924212345678">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                Call: +92-42-1234567
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CTASection />
     </div>
   );
 }

@@ -85,14 +85,8 @@ export function ContactInfo() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
-          <p className="text-muted-foreground">
-            <strong>Mon - Fri:</strong> 9:00 AM - 6:00 PM
-          </p>
-          <p className="text-muted-foreground">
-            <strong>Saturday:</strong> 10:00 AM - 4:00 PM
-          </p>
-          <p className="text-muted-foreground">
-            <strong>Sunday:</strong> Closed
+          <p className="text-muted-foreground whitespace-pre-line">
+            {settings.general.businessHours || "Contact us for business hours"}
           </p>
         </CardContent>
       </Card>

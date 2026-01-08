@@ -757,6 +757,9 @@ video {
 .collapse {
   visibility: collapse;
 }
+.static {
+  position: static;
+}
 .fixed {
   position: fixed;
 }
@@ -927,6 +930,9 @@ video {
 }
 .mr-3 {
   margin-right: 0.75rem;
+}
+.mt-0\.5 {
+  margin-top: 0.125rem;
 }
 .mt-1 {
   margin-top: 0.25rem;
@@ -2096,6 +2102,10 @@ video {
 .text-purple-800 {
   --tw-text-opacity: 1;
   color: rgb(107 33 168 / var(--tw-text-opacity, 1));
+}
+.text-red-500 {
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
 }
 .text-red-600 {
   --tw-text-opacity: 1;

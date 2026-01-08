@@ -13,6 +13,7 @@ const defaultSettings = {
     siteEmail: "info@pakautose.com",
     sitePhone: "+92 300 1234567",
     siteAddress: "Lahore, Pakistan",
+    businessHours: "Mon - Fri: 9:00 AM - 6:00 PM\nSaturday: 10:00 AM - 4:00 PM\nSunday: Closed",
     currency: "PKR",
     timezone: "Asia/Karachi",
     maintenanceMode: "false",
@@ -85,9 +86,13 @@ export async function GET() {
 
     // Override defaults with database values
     for (const setting of dbSettings) {
-      const [group, key] = (setting as any).key.split(".");
+      const settingData = setting as any;
+      const group = settingData.group;
+      const key = settingData.key;
+      
+      // Check if this group exists in our settings structure
       if (group && key && settings[group]) {
-        settings[group][key] = (setting as any).value;
+        settings[group][key] = settingData.value;
       }
     }
 

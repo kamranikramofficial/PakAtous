@@ -15,6 +15,7 @@ const defaultSettings = {
     siteEmail: "info@pakautose.com",
     sitePhone: "+92 300 1234567",
     siteAddress: "Lahore, Pakistan",
+    businessHours: "Mon - Fri: 9:00 AM - 6:00 PM\nSaturday: 10:00 AM - 4:00 PM\nSunday: Closed",
     currency: "PKR",
     timezone: "Asia/Karachi",
     maintenanceMode: "false",

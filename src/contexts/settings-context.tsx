@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 
 // Settings types
 export interface GeneralSettings {
@@ -9,6 +9,7 @@ export interface GeneralSettings {
   siteEmail: string;
   sitePhone: string;
   siteAddress: string;
+  businessHours: string;
   currency: string;
   timezone: string;
   maintenanceMode: string;
@@ -93,6 +94,7 @@ const defaultSettings: SiteSettings = {
     siteEmail: "info@pakautose.com",
     sitePhone: "+92 300 1234567",
     siteAddress: "Lahore, Pakistan",
+    businessHours: "Mon - Fri: 9:00 AM - 6:00 PM\nSaturday: 10:00 AM - 4:00 PM\nSunday: Closed",
     currency: "PKR",
     timezone: "Asia/Karachi",
     maintenanceMode: "false",
@@ -171,10 +173,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
-      // Add cache busting timestamp to prevent browser caching
       const res = await fetch(`/api/settings?t=${Date.now()}`, {
         cache: 'no-store',
         headers: {
@@ -191,18 +192,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error("Error fetching settings:", err);
       setError("Failed to load settings");
-      // Keep using defaults on error
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSettings();
     
     // Listen for settings updates from admin panel
     const handleSettingsUpdate = () => {
-      console.log("Settings updated, refetching...");
       fetchSettings();
     };
     
@@ -211,10 +210,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('settings-updated', handleSettingsUpdate);
     };
-  }, []);
+  }, [fetchSettings]);
 
   // Helper function to format price
-  const formatPrice = (amount: number): string => {
+  const formatPrice = useCallback((amount: number): string => {
     const currency = settings.general.currency || "PKR";
     return new Intl.NumberFormat("en-PK", {
       style: "currency",
@@ -222,10 +221,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-  };
+  }, [settings.general.currency]);
 
   // Helper function to calculate shipping cost
-  const getShippingCost = (subtotal: number): number => {
+  const getShippingCost = useCallback((subtotal: number): number => {
     const freeThreshold = parseFloat(settings.shipping.freeShippingThreshold) || 50000;
     const defaultCost = parseFloat(settings.shipping.defaultShippingCost) || 500;
     
@@ -233,31 +232,32 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return 0;
     }
     return defaultCost;
-  };
+  }, [settings.shipping.freeShippingThreshold, settings.shipping.defaultShippingCost]);
 
   // Check if COD is enabled
-  const isCODEnabled = (): boolean => {
+  const isCODEnabled = useCallback((): boolean => {
     return settings.shipping.enableCOD === "true";
-  };
+  }, [settings.shipping.enableCOD]);
 
   // Check if maintenance mode
-  const isMaintenanceMode = (): boolean => {
+  const isMaintenanceMode = useCallback((): boolean => {
     return settings.general.maintenanceMode === "true";
-  };
+  }, [settings.general.maintenanceMode]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    settings,
+    loading,
+    error,
+    refetch: fetchSettings,
+    formatPrice,
+    getShippingCost,
+    isCODEnabled,
+    isMaintenanceMode,
+  }), [settings, loading, error, fetchSettings, formatPrice, getShippingCost, isCODEnabled, isMaintenanceMode]);
 
   return (
-    <SettingsContext.Provider
-      value={{
-        settings,
-        loading,
-        error,
-        refetch: fetchSettings,
-        formatPrice,
-        getShippingCost,
-        isCODEnabled,
-        isMaintenanceMode,
-      }}
-    >
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );

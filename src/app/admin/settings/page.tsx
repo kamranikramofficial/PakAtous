@@ -61,6 +61,7 @@ const settingsConfig: Record<string, {
       { key: "siteEmail", label: "Contact Email", type: "email", placeholder: "info@example.com" },
       { key: "sitePhone", label: "Contact Phone", type: "tel", placeholder: "+92 300 1234567" },
       { key: "siteAddress", label: "Business Address", type: "textarea", placeholder: "Full business address" },
+      { key: "businessHours", label: "Business Hours", type: "textarea", placeholder: "Mon - Fri: 9:00 AM - 6:00 PM\nSaturday: 10:00 AM - 4:00 PM\nSunday: Closed", description: "Enter business hours (one per line)" },
       { key: "currency", label: "Currency", type: "select", options: [
         { value: "PKR", label: "Pakistani Rupee (PKR)" },
         { value: "USD", label: "US Dollar (USD)" },

@@ -5,7 +5,6 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { SettingsProvider } from "@/contexts/settings-context";
-import { MaintenanceMode } from "@/components/maintenance-mode";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -30,9 +29,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <SettingsProvider>
-            <MaintenanceMode>
-              {children}
-            </MaintenanceMode>
+            {children}
           </SettingsProvider>
         </ThemeProvider>
       </QueryClientProvider>
