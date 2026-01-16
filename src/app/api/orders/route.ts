@@ -347,21 +347,47 @@ export async function POST(request: NextRequest) {
       await CartItem.deleteMany({ cartId: cart._id });
     }
 
-    // Create notification for user
+    // Create notification for user (brief summary + cancellation window)
     await Notification.create({
       userId: session.user.id,
       type: "ORDER_PLACED",
-      title: "Order Placed Successfully!",
-      message: `Your order ${order.orderNumber} has been placed. Total: Rs. ${total.toLocaleString()}`,
+      title: "Order Placed",
+      message: `Order ${order.orderNumber} placed. Total Rs. ${total.toLocaleString()}. You can cancel within ${cancellationWindow} hours of placing the order.`,
       link: `/account/orders/${order._id}`,
       orderId: order._id,
     });
 
     // Send order confirmation email
+    // Fetch payment/general/order settings for notifications
+    const paymentSettings = await Setting.find({ group: 'payment' }).lean();
+    const generalSettings = await Setting.find({ group: 'general' }).lean();
+    const orderSettings = await Setting.find({ group: 'orders' }).lean();
+    
+    const bankDetails: any = {};
+    paymentSettings.forEach((setting: any) => {
+      bankDetails[setting.key] = setting.value;
+    });
+    
+    let siteEmail = 'info@pakautose.com';
+    generalSettings.forEach((setting: any) => {
+      if (setting.key === 'siteEmail') {
+        siteEmail = setting.value;
+      }
+    });
+    
+    const cancellationWindow = parseInt(
+      (orderSettings.find((s: any) => s.key === 'orderCancellationTime')?.value as string) || '24'
+    );
+
     const emailTemplate = getOrderConfirmationEmailTemplate({
       ...order.toObject(),
       id: order._id.toString(),
       items: orderItems,
+      bankName: bankDetails.bankName || '',
+      bankAccountTitle: bankDetails.bankAccountTitle || '',
+      bankAccountNumber: bankDetails.bankAccountNumber || '',
+      bankIBAN: bankDetails.bankIBAN || '',
+      siteEmail: siteEmail,
     });
     await sendEmail({
       to: checkoutData.shippingEmail,

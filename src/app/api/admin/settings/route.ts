@@ -19,6 +19,7 @@ const defaultSettings = {
     currency: "PKR",
     timezone: "Asia/Karachi",
     maintenanceMode: "false",
+    siteLogo: "",
   },
   shipping: {
     freeShippingThreshold: "50000",

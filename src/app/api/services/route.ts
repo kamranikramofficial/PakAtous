@@ -89,6 +89,24 @@ export async function POST(request: NextRequest) {
     
     // Debug: Log validated data
     console.log('Service Request - Validated images:', data.images);
+    console.log('Service Request - Images length:', data.images?.length);
+
+    // Process and validate images
+    const processedImages = data.images?.length
+      ? data.images.map((url: string) => {
+          if (!url || typeof url !== 'string') {
+            console.warn('Invalid image URL:', url);
+            return null;
+          }
+          return {
+            url: url.trim(),
+            description: "",
+          };
+        }).filter(img => img !== null)
+      : [];
+
+    console.log('Service Request - Processed images count:', processedImages.length);
+    console.log('Service Request - Processed images:', JSON.stringify(processedImages, null, 2));
 
     // Create service request with embedded images
     const serviceRequest = await ServiceRequest.create({
@@ -108,13 +126,12 @@ export async function POST(request: NextRequest) {
       problemTitle: data.problemTitle,
       problemDescription: data.problemDescription,
       preferredDate: data.preferredDate,
-      images: data.images?.length
-        ? data.images.map((url: string) => ({
-            url,
-            description: "",
-          }))
-        : [],
+      images: processedImages,
     });
+
+    // Verify images were saved
+    console.log('Service Request - Saved images count:', serviceRequest.images?.length);
+    console.log('Service Request - Saved images:', JSON.stringify(serviceRequest.images, null, 2));
 
     // Create notification for user
     await Notification.create({
@@ -130,7 +147,9 @@ export async function POST(request: NextRequest) {
     const serviceRequestObj = {
       ...serviceRequest.toObject(),
       id: serviceRequest._id.toString(),
+      images: processedImages,
     };
+    console.log('Service Request - Email object images:', JSON.stringify(serviceRequestObj.images, null, 2));
     const emailTemplate = getServiceRequestEmailTemplate(serviceRequestObj);
     await sendEmail({
       to: data.contactEmail,

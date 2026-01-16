@@ -333,27 +333,37 @@ export default function EditServicePage() {
             <CardContent>
               {service.images && Array.isArray(service.images) && service.images.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {service.images.map((img: any, index: number) => (
-                    <div key={index} className="space-y-1">
-                      <div className="aspect-video overflow-hidden rounded-lg border bg-muted">
-                        <img
-                          src={img.url}
-                          alt={img.description || `Service image ${index + 1}`}
-                          className="h-full w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => window.open(img.url, '_blank')}
-                          onError={(e) => {
-                            console.error('Image load error:', img.url);
-                            (e.target as HTMLImageElement).src = '/placeholder.svg';
-                          }}
-                        />
+                  {service.images.map((img: any, index: number) => {
+                    const CLOUDINARY_CLOUD_NAME = "drmqggyb9";
+                    let imageUrl = img.url || img.secure_url || img.path || "";
+                    
+                    // If URL looks like just a public_id, construct full URL
+                    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                      imageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${imageUrl}`;
+                    }
+                    
+                    return (
+                      <div key={index} className="space-y-1">
+                        <div className="aspect-video overflow-hidden rounded-lg border bg-muted">
+                          <img
+                            src={imageUrl || '/placeholder.svg'}
+                            alt={img.description || `Service image ${index + 1}`}
+                            className="h-full w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => imageUrl && window.open(imageUrl, '_blank')}
+                            onError={(e) => {
+                              console.error('Image load error:', imageUrl);
+                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                            }}
+                          />
+                        </div>
+                        {img.description && (
+                          <p className="text-xs text-muted-foreground px-1">
+                            {img.description}
+                          </p>
+                        )}
                       </div>
-                      {img.description && (
-                        <p className="text-xs text-muted-foreground px-1">
-                          {img.description}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8">

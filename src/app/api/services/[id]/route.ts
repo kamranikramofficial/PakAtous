@@ -32,12 +32,30 @@ export async function GET(
       );
     }
 
-    // Debug log for images
-    console.log('User API - Service images:', (serviceRequest as any).images);
-    console.log('User API - Service images length:', (serviceRequest as any).images?.length);
+    // Normalize images to ensure url is present and safe for the client
+    const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'drmqggyb9';
+    const images = (serviceRequest as any).images?.map((img: any) => {
+      let url = img?.url || img?.secure_url || img?.path || "";
+      
+      // If only public_id is stored, construct full Cloudinary URL
+      if (!url && img?.public_id) {
+        url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${img.public_id}`;
+      }
+      
+      // Debug logging
+      if (!url) {
+        console.warn('Image has no URL field. Image data:', JSON.stringify(img));
+      }
+      
+      return {
+        url,
+        description: img?.description || "",
+      };
+    }) || [];
 
     return NextResponse.json({
       ...serviceRequest,
+      images,
       id: (serviceRequest as any)._id.toString(),
     });
   } catch (error) {

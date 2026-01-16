@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/prisma";
 import { Order } from "@/models/Order";
+import { Setting } from "@/models/Setting";
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,24 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // Fetch payment settings for bank details
+    const paymentSettings = await Setting.find({ group: 'payment' }).lean();
+    const generalSettings = await Setting.find({ group: 'general' }).lean();
+    
+    const bankDetails: any = {};
+    paymentSettings.forEach((setting: any) => {
+      bankDetails[setting.key] = setting.value;
+    });
+    
+    let siteEmail = 'info@pakautose.com';
+    generalSettings.forEach((setting: any) => {
+      if (setting.key === 'siteEmail') {
+        siteEmail = setting.value;
+      }
+    });
+
     // Generate invoice HTML
-    const invoiceHtml = generateInvoiceHTML(order as any);
+    const invoiceHtml = generateInvoiceHTML(order as any, bankDetails, siteEmail);
 
     return new NextResponse(invoiceHtml, {
       headers: {
@@ -55,7 +72,7 @@ export async function GET(
   }
 }
 
-function generateInvoiceHTML(order: any): string {
+function generateInvoiceHTML(order: any, bankDetails: any = {}, siteEmail: string = 'info@pakautose.com'): string {
   const orderDate = new Date(order.createdAt).toLocaleDateString('en-PK', {
     year: 'numeric',
     month: 'long',
@@ -181,6 +198,18 @@ function generateInvoiceHTML(order: any): string {
       <div style="margin-top: 30px; padding: 20px; background: #f3f4f6; border-radius: 8px;">
         <h4 style="margin-bottom: 10px; color: #1e40af;">Payment Method</h4>
         <p>${order.paymentMethod.replace(/_/g, ' ')}</p>
+        ${order.paymentMethod === 'BANK_TRANSFER' && (bankDetails.bankName || bankDetails.bankAccountNumber || bankDetails.bankIBAN) ? `
+        <div style="margin-top: 20px; padding: 15px; background: #dbeafe; border-left: 4px solid #1e40af; border-radius: 4px;">
+          <h4 style="margin-bottom: 10px; color: #1e40af;">Bank Transfer Details</h4>
+          ${bankDetails.bankName ? `<p style="margin: 5px 0;"><strong>Bank:</strong> ${bankDetails.bankName}</p>` : ''}
+          ${bankDetails.bankAccountTitle ? `<p style="margin: 5px 0;"><strong>Account Title:</strong> ${bankDetails.bankAccountTitle}</p>` : ''}
+          ${bankDetails.bankAccountNumber ? `<p style="margin: 5px 0;"><strong>Account Number:</strong> ${bankDetails.bankAccountNumber}</p>` : ''}
+          ${bankDetails.bankIBAN ? `<p style="margin: 5px 0;"><strong>IBAN:</strong> ${bankDetails.bankIBAN}</p>` : ''}
+          <p style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #93c5fd; font-size: 14px; color: #1e40af;">
+            <strong>Important:</strong> Please send payment proof to <a href="mailto:${siteEmail}" style="color: #1e40af; text-decoration: underline;">${siteEmail}</a>
+          </p>
+        </div>
+        ` : ''}
         ${order.customerNotes ? `
         <h4 style="margin-top: 15px; margin-bottom: 10px; color: #1e40af;">Customer Notes</h4>
         <p style="color: #4b5563;">${order.customerNotes}</p>

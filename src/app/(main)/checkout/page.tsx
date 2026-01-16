@@ -47,6 +47,9 @@ export default function CheckoutPage() {
     discount: number;
     type: string;
   } | null>(null);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
   
   // Determine default payment method based on settings
   const defaultPaymentMethod = isCODEnabled() ? "CASH_ON_DELIVERY" : "BANK_TRANSFER";
@@ -74,7 +77,52 @@ export default function CheckoutPage() {
     if (items.length === 0) {
       router.push("/cart");
     }
+
+    // Fetch default address if logged in
+    if (session?.user?.id) {
+      fetchDefaultAddress();
+    }
   }, [session, status, router, items.length]);
+
+  const fetchDefaultAddress = async () => {
+    try {
+      const res = await fetch("/api/user/addresses");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedAddresses(data.addresses || []);
+        
+        const defaultAddress = data.addresses?.find((addr: any) => addr.isDefault);
+        
+        if (defaultAddress) {
+          // Pre-fill form with default address
+          setValue("shippingName", defaultAddress.fullName);
+          setValue("shippingPhone", defaultAddress.phone);
+          setValue("shippingEmail", session?.user?.email || "");
+          setValue("shippingAddressLine", defaultAddress.address);
+          setValue("shippingCity", defaultAddress.city);
+          setValue("shippingState", defaultAddress.state);
+          setValue("shippingPostalCode", defaultAddress.postalCode);
+          setValue("shippingCountry", defaultAddress.country);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch default address:", error);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  const selectAddress = (address: any) => {
+    setValue("shippingName", address.fullName);
+    setValue("shippingPhone", address.phone);
+    setValue("shippingEmail", session?.user?.email || "");
+    setValue("shippingAddressLine", address.address);
+    setValue("shippingCity", address.city);
+    setValue("shippingState", address.state);
+    setValue("shippingPostalCode", address.postalCode);
+    setValue("shippingCountry", address.country);
+    setShowAddressSelector(false);
+  };
 
   const subtotal = getSubtotal();
   const shipping = getShippingCost(subtotal);
@@ -200,6 +248,29 @@ export default function CheckoutPage() {
                 <CardTitle>Shipping Address</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Quick Select from Saved Addresses */}
+                {!loadingAddresses && savedAddresses.length > 0 && (
+                  <div className="mb-4 pb-4 border-b space-y-2">
+                    <Label className="text-sm">Or use saved addresses:</Label>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {savedAddresses.map((address) => (
+                        <Button
+                          key={address._id}
+                          type="button"
+                          variant={address.isDefault ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => selectAddress(address)}
+                          className="justify-start h-auto py-2 px-3"
+                        >
+                          <div className="text-left text-xs">
+                            <p className="font-medium">{address.label}</p>
+                            <p className="text-muted-foreground">{address.city}</p>
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="shippingName">Full Name *</Label>
@@ -368,9 +439,9 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {paymentMethod === "BANK_TRANSFER" && settings.payment.bankName && (
+                {paymentMethod === "BANK_TRANSFER" && (settings.payment.bankName || settings.payment.bankAccountNumber || settings.payment.bankIBAN) && (
                   <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-2">
-                    <p className="text-sm font-medium text-blue-800">Bank Details:</p>
+                    <p className="text-sm font-medium text-blue-800">Bank Transfer Details:</p>
                     <div className="text-sm text-blue-700 space-y-1">
                       {settings.payment.bankName && <p><strong>Bank:</strong> {settings.payment.bankName}</p>}
                       {settings.payment.bankAccountTitle && <p><strong>Account Title:</strong> {settings.payment.bankAccountTitle}</p>}
@@ -383,10 +454,10 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {paymentMethod === "BANK_TRANSFER" && !settings.payment.bankName && (
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                    <p className="text-sm text-blue-700">
-                      Bank details will be sent to your email after placing the order.
+                {paymentMethod === "BANK_TRANSFER" && !settings.payment.bankName && !settings.payment.bankAccountNumber && !settings.payment.bankIBAN && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                    <p className="text-sm text-yellow-700">
+                      <strong>Note:</strong> Bank details will be sent to your email after placing the order.
                     </p>
                   </div>
                 )}

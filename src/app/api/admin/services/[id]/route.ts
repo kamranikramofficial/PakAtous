@@ -61,6 +61,26 @@ export async function GET(
     console.log('API - Service images:', (service as any).images);
     console.log('API - Service images length:', (service as any).images?.length);
 
+    // Normalize images to ensure url is present and safe for the client
+    const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'drmqggyb9';
+    const images = (service as any).images?.map((img: any) => {
+      let url = img?.url || img?.secure_url || img?.path || "";
+      
+      // If only public_id is stored, construct full Cloudinary URL
+      if (!url && img?.public_id) {
+        url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${img.public_id}`;
+      }
+      
+      if (!url) {
+        console.warn('Image has no URL field. Image data:', JSON.stringify(img));
+      }
+      
+      return {
+        url,
+        description: img?.description || "",
+      };
+    }) || [];
+
     // Get user info
     const user = await User.findById((service as any).userId)
       .select('name email phone address')
@@ -77,6 +97,7 @@ export async function GET(
     return NextResponse.json({
       service: {
         ...service,
+        images,
         id: (service as any)._id.toString(),
         user: user ? { ...user, id: (user as any)._id.toString() } : null,
       },

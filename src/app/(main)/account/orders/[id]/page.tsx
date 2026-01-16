@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { useSettings } from "@/contexts/settings-context";
+import { useToast } from "@/components/ui/use-toast";
 
 interface OrderDetail {
   id: string;
@@ -68,8 +70,12 @@ const orderStatusSteps = [
 
 export default function OrderDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { settings } = useSettings();
+  const { toast } = useToast();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -148,6 +154,62 @@ export default function OrderDetailPage() {
 
   const downloadInvoice = () => {
     window.open(`/api/orders/${order.id}/invoice`, '_blank');
+  };
+
+  const canCancelOrder = () => {
+    if (!order || order.status !== "PENDING") return false;
+    
+    const orderTime = new Date(order.createdAt).getTime();
+    const currentTime = new Date().getTime();
+    const cancellationWindow = parseInt(settings.orders?.orderCancellationTime || "24");
+    const hoursPassed = (currentTime - orderTime) / (1000 * 60 * 60);
+    
+    return hoursPassed <= cancellationWindow;
+  };
+
+  const handleCancelOrder = async () => {
+    if (!canCancelOrder()) {
+      toast({
+        title: "Cannot Cancel",
+        description: "Cancellation window has expired or order has already been processed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Order Cancelled",
+          description: "Your order has been cancelled successfully.",
+        });
+        // Refresh order data
+        const updatedData = await res.json();
+        setOrder(updatedData);
+      } else {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to cancel order");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel order",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelling(false);
+    }
   };
 
   return (
@@ -406,9 +468,63 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Bank Transfer Details */}
+          {order.paymentMethod === "BANK_TRANSFER" && (settings.payment?.bankName || settings.payment?.bankAccountNumber || settings.payment?.bankIBAN) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bank Transfer Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {settings.payment.bankName && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bank</span>
+                    <span className="font-medium">{settings.payment.bankName}</span>
+                  </div>
+                )}
+                {settings.payment.bankAccountTitle && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Account Title</span>
+                    <span className="font-medium">{settings.payment.bankAccountTitle}</span>
+                  </div>
+                )}
+                {settings.payment.bankAccountNumber && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Account No</span>
+                    <span className="font-mono font-medium">{settings.payment.bankAccountNumber}</span>
+                  </div>
+                )}
+                {settings.payment.bankIBAN && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">IBAN</span>
+                    <span className="font-mono text-sm">{settings.payment.bankIBAN}</span>
+                  </div>
+                )}
+                <div className="pt-3 border-t text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">Payment Instructions:</p>
+                  <p>Please send payment proof to: <a href={`mailto:${settings.general?.siteEmail}`} className="text-primary hover:underline">{settings.general?.siteEmail}</a></p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Actions */}
           <Card>
             <CardContent className="pt-6 space-y-2">
+              {canCancelOrder() && order.status === "PENDING" && (
+                <Button 
+                  className="w-full" 
+                  variant="destructive"
+                  onClick={handleCancelOrder}
+                  disabled={cancelling}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m15 9-6 6" />
+                    <path d="m9 9 6 6" />
+                  </svg>
+                  {cancelling ? "Cancelling..." : "Cancel Order"}
+                </Button>
+              )}
               <Button className="w-full" variant="outline" asChild>
                 <Link href="/services">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
@@ -417,14 +533,6 @@ export default function OrderDetailPage() {
                   </svg>
                   Request Service
                 </Link>
-              </Button>
-              <Button className="w-full" variant="outline">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" x2="12" y1="15" y2="3" />
-                </svg>
-                Download Invoice
               </Button>
             </CardContent>
           </Card>

@@ -2,6 +2,7 @@
 
 import { useSettings } from "@/contexts/settings-context";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 interface MaintenanceModeProps {
   children: React.ReactNode;
@@ -10,9 +11,24 @@ interface MaintenanceModeProps {
 export function MaintenanceMode({ children }: MaintenanceModeProps) {
   const { settings, loading: settingsLoading } = useSettings();
   const { data: session, status } = useSession();
+  const [shouldShowMaintenance, setShouldShowMaintenance] = useState(false);
   
   // Check maintenance mode directly from settings
   const maintenanceEnabled = settings.general.maintenanceMode === "true";
+  
+  // Determine if user should see maintenance page
+  useEffect(() => {
+    // Wait for both settings and session to load
+    if (settingsLoading || status === "loading") {
+      return;
+    }
+    
+    // Check if user is admin or staff
+    const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
+    
+    // Show maintenance if enabled and user is not admin/staff
+    setShouldShowMaintenance(maintenanceEnabled && !isAdmin);
+  }, [maintenanceEnabled, session?.user?.role, status, settingsLoading]);
   
   // Show loading state while settings or session is loading
   if (settingsLoading || status === "loading") {
@@ -23,11 +39,8 @@ export function MaintenanceMode({ children }: MaintenanceModeProps) {
     );
   }
   
-  // Allow admins to bypass maintenance mode
-  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
-  
-  // Show maintenance page if maintenance mode is enabled and user is not admin
-  if (maintenanceEnabled && !isAdmin) {
+  // Show maintenance page if conditions are met
+  if (shouldShowMaintenance) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
         <div className="text-center px-4">

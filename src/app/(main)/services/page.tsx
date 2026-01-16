@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
@@ -173,6 +173,9 @@ export default function ServicesPage() {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
 
   const {
     register,
@@ -182,6 +185,53 @@ export default function ServicesPage() {
   } = useForm<ServiceRequestFormData>({
     resolver: zodResolver(serviceRequestSchema),
   });
+
+  // Fetch user's saved addresses on mount
+  useEffect(() => {
+    const fetchDefaultAddress = async () => {
+      try {
+        const res = await fetch("/api/user/addresses");
+        if (res.ok) {
+          const data = await res.json();
+          setSavedAddresses(data.addresses || []);
+          
+          // Pre-fill form with default address if it exists
+          const defaultAddress = data.addresses?.find((addr: any) => addr.isDefault);
+          if (defaultAddress) {
+            setValue("contactName", defaultAddress.fullName);
+            setValue("contactPhone", defaultAddress.phone);
+            setValue("serviceAddress", defaultAddress.street);
+            setValue("serviceCity", defaultAddress.city);
+            setValue("serviceState", defaultAddress.state);
+            setValue("contactEmail", session?.user?.email || "");
+          } else if (session?.user) {
+            // Fallback to session data
+            setValue("contactName", session.user.name || "");
+            setValue("contactEmail", session.user.email || "");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+      } finally {
+        setLoadingAddresses(false);
+      }
+    };
+
+    if (session?.user) {
+      fetchDefaultAddress();
+    } else {
+      setLoadingAddresses(false);
+    }
+  }, [session, setValue]);
+
+  const selectAddress = (address: any) => {
+    setValue("contactName", address.fullName);
+    setValue("contactPhone", address.phone);
+    setValue("serviceAddress", address.street);
+    setValue("serviceCity", address.city);
+    setValue("serviceState", address.state);
+    setShowAddressSelector(false);
+  };
 
   const uploadImages = async (files: FileList) => {
     if (images.length + files.length > 5) {
@@ -397,6 +447,28 @@ export default function ServicesPage() {
                 {/* Contact Details */}
                 <div className="space-y-4">
                   <h3 className="font-semibold">Contact & Location</h3>
+                  
+                  {/* Saved Addresses Quick Select */}
+                  {!loadingAddresses && savedAddresses.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Saved Addresses</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {savedAddresses.map((address) => (
+                          <Button
+                            key={address._id}
+                            type="button"
+                            variant={address.isDefault ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => selectAddress(address)}
+                            className="text-xs"
+                          >
+                            {address.label} - {address.city}
+                            {address.isDefault && " ✓"}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="contactName">Your Name *</Label>

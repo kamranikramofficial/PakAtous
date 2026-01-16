@@ -52,6 +52,8 @@ export default function SellGeneratorPage() {
   const [showForm, setShowForm] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [viewingListing, setViewingListing] = useState<any | null>(null);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -84,6 +86,7 @@ export default function SellGeneratorPage() {
   useEffect(() => {
     if (session?.user) {
       fetchListings();
+      fetchAddresses();
       // Pre-fill contact info from user profile
       setFormData(prev => ({
         ...prev,
@@ -92,6 +95,32 @@ export default function SellGeneratorPage() {
       }));
     }
   }, [session]);
+
+  const fetchAddresses = async () => {
+    try {
+      const res = await fetch("/api/user/addresses");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedAddresses(data.addresses || []);
+        
+        // Pre-fill with default address if exists
+        const defaultAddress = data.addresses?.find((addr: any) => addr.isDefault);
+        if (defaultAddress) {
+          setFormData(prev => ({
+            ...prev,
+            contactName: defaultAddress.fullName,
+            contactPhone: defaultAddress.phone,
+            contactCity: defaultAddress.city,
+            contactAddress: defaultAddress.street,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
 
   const fetchListings = async () => {
     try {
@@ -107,6 +136,16 @@ export default function SellGeneratorPage() {
 
   const handleImagesChange = (urls: string[]) => {
     setImageUrls(urls);
+  };
+
+  const selectAddress = (address: any) => {
+    setFormData(prev => ({
+      ...prev,
+      contactName: address.fullName,
+      contactPhone: address.phone,
+      contactCity: address.city,
+      contactAddress: address.street,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -579,6 +618,28 @@ export default function SellGeneratorPage() {
                     />
                   </div>
                 </div>
+
+                {/* Saved Addresses Quick Select */}
+                {!loadingAddresses && savedAddresses.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Saved Addresses</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {savedAddresses.map((address) => (
+                        <Button
+                          key={address._id}
+                          type="button"
+                          variant={address.isDefault ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => selectAddress(address)}
+                          className="text-xs"
+                        >
+                          {address.label} - {address.city}
+                          {address.isDefault && " ✓"}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">

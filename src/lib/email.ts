@@ -223,6 +223,20 @@ export function getOrderConfirmationEmailTemplate(order: any) {
             Phone: ${order.shippingPhone}
           </p>
           
+          ${order.paymentMethod === 'BANK_TRANSFER' ? `
+          <h3 style="margin-top: 30px; color: #1e40af;">Payment Details</h3>
+          <div style="background: #dbeafe; padding: 20px; border-radius: 5px; border-left: 4px solid #1e40af;">
+            <p style="margin: 0 0 10px 0; font-weight: bold;">Please transfer the amount to:</p>
+            ${order.bankName ? `<p style="margin: 5px 0;"><strong>Bank:</strong> ${order.bankName}</p>` : ''}
+            ${order.bankAccountTitle ? `<p style="margin: 5px 0;"><strong>Account Title:</strong> ${order.bankAccountTitle}</p>` : ''}
+            ${order.bankAccountNumber ? `<p style="margin: 5px 0;"><strong>Account Number:</strong> ${order.bankAccountNumber}</p>` : ''}
+            ${order.bankIBAN ? `<p style="margin: 5px 0;"><strong>IBAN:</strong> ${order.bankIBAN}</p>` : ''}
+            <p style="margin: 15px 0 0 0; padding-top: 10px; border-top: 1px solid #93c5fd; font-size: 0.9em;">
+              <strong>Important:</strong> After making the payment, please send the payment proof/receipt to <a href="mailto:${order.siteEmail}" style="color: #1e40af;">${order.siteEmail}</a>
+            </p>
+          </div>
+          ` : ''}
+          
           <div style="text-align: center; margin: 30px 0;">
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/account/orders/${order.id}" style="background: #1e40af; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Track Order</a>
           </div>
