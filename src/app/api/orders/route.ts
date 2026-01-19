@@ -347,6 +347,15 @@ export async function POST(request: NextRequest) {
       await CartItem.deleteMany({ cartId: cart._id });
     }
 
+    // Fetch payment/general/order settings for notifications
+    const paymentSettings = await Setting.find({ group: 'payment' }).lean();
+    const generalSettings = await Setting.find({ group: 'general' }).lean();
+    const orderSettings = await Setting.find({ group: 'orders' }).lean();
+    
+    const cancellationWindow = parseInt(
+      (orderSettings.find((s: any) => s.key === 'orderCancellationTime')?.value as string) || '24'
+    );
+
     // Create notification for user (brief summary + cancellation window)
     await Notification.create({
       userId: session.user.id,
@@ -358,10 +367,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Send order confirmation email
-    // Fetch payment/general/order settings for notifications
-    const paymentSettings = await Setting.find({ group: 'payment' }).lean();
-    const generalSettings = await Setting.find({ group: 'general' }).lean();
-    const orderSettings = await Setting.find({ group: 'orders' }).lean();
     
     const bankDetails: any = {};
     paymentSettings.forEach((setting: any) => {
@@ -374,10 +379,6 @@ export async function POST(request: NextRequest) {
         siteEmail = setting.value;
       }
     });
-    
-    const cancellationWindow = parseInt(
-      (orderSettings.find((s: any) => s.key === 'orderCancellationTime')?.value as string) || '24'
-    );
 
     const emailTemplate = getOrderConfirmationEmailTemplate({
       ...order.toObject(),
