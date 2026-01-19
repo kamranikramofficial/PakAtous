@@ -3,12 +3,17 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const isLoggedIn = !!token;
-  const isAdmin = token?.role === "ADMIN";
-  const isStaff = token?.role === "STAFF";
-  
-  const { pathname } = req.nextUrl;
+  try {
+    const token = await getToken({ 
+      req, 
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: process.env.NODE_ENV === "production"
+    });
+    const isLoggedIn = !!token;
+    const isAdmin = token?.role === "ADMIN";
+    const isStaff = token?.role === "STAFF";
+    
+    const { pathname } = req.nextUrl;
   
   // Admin routes protection
   if (pathname.startsWith("/admin")) {
@@ -52,6 +57,11 @@ export async function middleware(req: NextRequest) {
   }
   
   return NextResponse.next();
+  } catch (error) {
+    console.error("Middleware error:", error);
+    // In case of error, allow the request to proceed
+    return NextResponse.next();
+  }
 }
 
 export const config = {
