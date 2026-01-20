@@ -6,13 +6,13 @@ import { Review } from "@/models/Review";
 import { User } from "@/models/User";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  _request: NextRequest,
+  { params }: { params: { slug: string } }
 ) {
   try {
     await dbConnect();
 
-    const { slug } = await params;
+    const { slug } = params;
     
     const generator = await Generator.findOne({ 
       slug: slug, 
