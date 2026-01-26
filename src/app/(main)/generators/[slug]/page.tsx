@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
+import { Heart } from "lucide-react";
 
 interface Generator {
   id: string;
@@ -120,6 +121,8 @@ export default function GeneratorDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     const fetchGenerator = async () => {
@@ -129,7 +132,7 @@ export default function GeneratorDetailPage() {
         const data = await response.json();
         setGenerator(data.generator);
       } catch (error) {
-        router.push("/generators");
+        // router.push("/generators"); // Avoid redirecting immediately on error to prevent flashing
       } finally {
         setLoading(false);
       }
@@ -139,6 +142,25 @@ export default function GeneratorDetailPage() {
       fetchGenerator();
     }
   }, [params.slug, router]);
+
+  // Check wishlist status
+  useEffect(() => {
+      if (session?.user && generator) {
+          const checkWishlist = async () => {
+              try {
+                  const res = await fetch('/api/user/wishlist');
+                  if (res.ok) {
+                      const items = await res.json();
+                      const found = items.some((item: any) => item.generatorId && item.generator && item.generator._id === generator.id || item.generatorId === generator.id);
+                      setIsInWishlist(found);
+                  }
+              } catch (e) {
+                  console.error(e);
+              }
+          }
+          checkWishlist();
+      }
+  }, [session, generator]);
 
   const handleAddToCart = async () => {
     if (!generator) return;
@@ -181,6 +203,38 @@ export default function GeneratorDetailPage() {
     } finally {
       setAddingToCart(false);
     }
+  };
+
+  const handleAddToWishlist = async () => {
+      if (!session) {
+          router.push(`/auth/login?callbackUrl=/generators/${params.slug}`);
+          return;
+      }
+      if (!generator) return;
+
+      setWishlistLoading(true);
+      try {
+          const res = await fetch("/api/user/wishlist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ generatorId: generator.id })
+          });
+          
+          if (res.ok) {
+              const data = await res.json();
+              if (data.action === 'added') {
+                  setIsInWishlist(true);
+                  toast({ title: "Added to wishlist" });
+              } else {
+                  setIsInWishlist(false);
+                  toast({ title: "Removed from wishlist" });
+              }
+          }
+      } catch (error) {
+          toast({ title: "Error updating wishlist", variant: "destructive" });
+      } finally {
+          setWishlistLoading(false);
+      }
   };
 
   if (loading) {
@@ -264,6 +318,16 @@ export default function GeneratorDetailPage() {
                 {discount}% OFF
               </Badge>
             )}
+            
+            <Button
+                variant="outline"
+                size="icon"
+                className="absolute top-4 right-4 rounded-full bg-white/80 hover:bg-white"
+                onClick={handleAddToWishlist}
+                disabled={wishlistLoading}
+            >
+                <Heart className={`h-5 w-5 ${isInWishlist ? "fill-red-500 text-red-500" : "text-gray-500"}`} />
+            </Button>
           </div>
           {generator.images.length > 1 && (
             <div className="flex gap-2 overflow-x-auto">
@@ -396,6 +460,8 @@ export default function GeneratorDetailPage() {
               </div>
             )}
 
+
+            <div className="flex flex-col gap-4">
             {generator.stock > 0 && (
               <div className="flex items-center gap-4">
                 <div className="flex items-center border rounded-lg">
@@ -448,6 +514,17 @@ export default function GeneratorDetailPage() {
                 </Button>
               </div>
             )}
+             <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleAddToWishlist}
+                disabled={wishlistLoading}
+            >
+                <Heart className={`mr-2 h-5 w-5 ${isInWishlist ? "fill-red-500 text-red-500" : ""}`} />
+                {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+            </Button>
+            </div>
           </div>
 
           {/* Quick Info */}
