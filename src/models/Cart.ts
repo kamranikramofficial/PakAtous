@@ -55,32 +55,3 @@ const cartSchema = new Schema<ICart>(
 );
 
 export const Cart: Model<ICart> = mongoose.models.Cart || mongoose.model<ICart>('Cart', cartSchema);
-
-// Wishlist Item Interface
-export interface IWishlistItem extends Document {
-  _id: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
-  itemType: OrderItemType;
-  generatorId?: mongoose.Types.ObjectId;
-  partId?: mongoose.Types.ObjectId;
-  createdAt: Date;
-}
-
-const wishlistItemSchema = new Schema<IWishlistItem>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    itemType: { type: String, enum: ['GENERATOR', 'PART'], required: true },
-    generatorId: { type: Schema.Types.ObjectId, ref: 'Generator' },
-    partId: { type: Schema.Types.ObjectId, ref: 'Part' },
-  },
-  {
-    timestamps: { createdAt: true, updatedAt: false },
-  }
-);
-
-wishlistItemSchema.index({ userId: 1 });
-wishlistItemSchema.index({ userId: 1, generatorId: 1 }, { unique: true, sparse: true });
-wishlistItemSchema.index({ userId: 1, partId: 1 }, { unique: true, sparse: true });
-
-export const WishlistItem: Model<IWishlistItem> =
-  mongoose.models.WishlistItem || mongoose.model<IWishlistItem>('WishlistItem', wishlistItemSchema);

@@ -17,3 +17,4 @@ export * from './Page';
 export * from './ContactInquiry';
 export * from './AuditLog';
 export * from './DeletedUser';
+export * from './Wishlist';
