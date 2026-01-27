@@ -7,6 +7,7 @@ import { useState } from "react";
 import { SettingsProvider } from "@/contexts/settings-context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Initialize QueryClient
   const [queryClient] = useState(
     () =>
       new QueryClient({

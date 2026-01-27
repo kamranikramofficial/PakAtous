@@ -6,10 +6,6 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const MONGODB_URI = process.env.DATABASE_URL || '';
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the DATABASE_URL environment variable inside .env');
-}
-
 interface CachedConnection {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -26,6 +22,10 @@ if (!global.mongoose) {
 }
 
 async function dbConnect(): Promise<typeof mongoose> {
+  if (!MONGODB_URI) {
+    throw new Error('Please define the DATABASE_URL environment variable inside .env');
+  }
+
   if (cached.conn) {
     return cached.conn;
   }

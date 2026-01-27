@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const wishlistItems = await WishlistItem.find({ userId: session.user.id })
-      .populate('generator')
-      .populate('part')
+      .populate('generatorId')
+      .populate('partId')
       .sort({ createdAt: -1 });
 
     return NextResponse.json(wishlistItems);

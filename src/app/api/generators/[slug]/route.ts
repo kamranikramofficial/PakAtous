@@ -7,12 +7,12 @@ import { User } from "@/models/User";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     await dbConnect();
 
-    const { slug } = params;
+    const { slug } = await params;
     
     const generator = await Generator.findOne({ 
       slug: slug, 

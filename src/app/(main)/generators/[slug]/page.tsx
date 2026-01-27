@@ -132,7 +132,8 @@ export default function GeneratorDetailPage() {
         const data = await response.json();
         setGenerator(data.generator);
       } catch (error) {
-        // router.push("/generators"); // Avoid redirecting immediately on error to prevent flashing
+        console.error("Error loading generator:", error);
+        setGenerator(null);
       } finally {
         setLoading(false);
       }
@@ -151,11 +152,17 @@ export default function GeneratorDetailPage() {
                   const res = await fetch('/api/user/wishlist');
                   if (res.ok) {
                       const items = await res.json();
-                      const found = items.some((item: any) => item.generatorId && item.generator && item.generator._id === generator.id || item.generatorId === generator.id);
+                      const found = items.some((item: any) => {
+                          if (!item.generatorId) return false;
+                          const gId = (typeof item.generatorId === 'object' && item.generatorId._id) 
+                              ? item.generatorId._id 
+                              : item.generatorId;
+                          return gId === generator.id;
+                      });
                       setIsInWishlist(found);
                   }
               } catch (e) {
-                  console.error(e);
+                  console.error("Wishlist check failed", e);
               }
           }
           checkWishlist();

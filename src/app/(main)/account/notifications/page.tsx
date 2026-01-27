@@ -3,10 +3,15 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import { 
+  Card, 
+  CardContent 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Bell, 
   Trash2, 
@@ -16,7 +21,8 @@ import {
   DollarSign, 
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  ArrowRight
 } from "lucide-react";
 
 interface Notification {
@@ -40,11 +46,11 @@ const getViewLink = (notification: Notification) => {
 
   // Fallbacks based on known IDs
   if (notification.orderId) {
-    return `/account/orders/${notification.orderId}`;
+    return `/account/orders/${notification.orderId.toString()}`;
   }
 
   if (notification.serviceRequestId) {
-    return `/account/services/${notification.serviceRequestId}`;
+    return `/account/services/${notification.serviceRequestId.toString()}`;
   }
 
   // Type-based fallbacks to keep users on their section (never admin)
@@ -56,7 +62,7 @@ const getViewLink = (notification: Notification) => {
     return "/account/services";
   }
 
-  return "/account";
+  return null;
 };
 
 const notificationTypeConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
@@ -75,12 +81,13 @@ const notificationTypeConfig: Record<string, { icon: React.ReactNode; color: str
 };
 
 export default function NotificationsPage() {
-  const { data: session } = useSession();
+  const router = useRouter();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNotifications();
@@ -106,20 +113,19 @@ export default function NotificationsPage() {
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n._id === notificationId
+          ? { ...n, isRead: true, readAt: new Date().toISOString() }
+          : n
+      )
+    );
+
     try {
-      const res = await fetch(`/api/user/notifications/${notificationId}/read`, {
+      await fetch(`/api/user/notifications/${notificationId}`, {
         method: "PUT",
       });
-
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n._id === notificationId
-              ? { ...n, isRead: true, readAt: new Date().toISOString() }
-              : n
-          )
-        );
-      }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
@@ -198,6 +204,15 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleNotificationClick = async (notification: Notification) => {
+      if (!notification.isRead) {
+          handleMarkAsRead(notification._id);
+      }
+      
+      // Toggle expansion logic instead of navigation
+      setExpandedId(prev => prev === notification._id ? null : notification._id);
+  }
+
   const filteredNotifications =
     filter === "unread"
       ? notifications.filter((n) => !n.isRead)
@@ -207,35 +222,39 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-48 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex h-96 items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-muted-foreground">Loading notifications...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 container max-w-4xl mx-auto py-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Notifications</h1>
-          <p className="text-muted-foreground">
-            You have {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
+          <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
+          <p className="text-muted-foreground mt-1">
+            Stay updated with your orders and activities
           </p>
         </div>
+        
         {notifications.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
                 <Check className="mr-2 h-4 w-4" />
-                Mark all as read
+                Mark all read
               </Button>
             )}
             <Button
               variant="outline"
               size="sm"
               onClick={handleClearAll}
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Clear all
@@ -245,139 +264,157 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filter Tabs */}
-      {notifications.length > 0 && (
-        <div className="flex gap-2 border-b">
-          <Button
-            variant={filter === "all" ? "default" : "ghost"}
-            size="sm"
+      <div className="flex items-center gap-4 border-b">
+          <button
             onClick={() => setFilter("all")}
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+                filter === "all" 
+                ? "border-primary text-primary" 
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
-            All ({notifications.length})
-          </Button>
-          <Button
-            variant={filter === "unread" ? "default" : "ghost"}
-            size="sm"
+            All Notifications
+            <Badge variant="secondary" className="ml-2">{notifications.length}</Badge>
+          </button>
+          <button
             onClick={() => setFilter("unread")}
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+                filter === "unread" 
+                ? "border-primary text-primary" 
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
-            Unread ({unreadCount})
-          </Button>
-        </div>
-      )}
+            Unread
+            {unreadCount > 0 && (
+                <Badge className="ml-2 bg-primary text-primary-foreground">{unreadCount}</Badge>
+            )}
+          </button>
+      </div>
 
       {/* Notifications List */}
       {filteredNotifications.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Bell className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <Card className="border-dashed">
+          <CardContent className="py-16 text-center">
+            <div className="h-16 w-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <Bell className="h-8 w-8 text-muted-foreground" />
+            </div>
             <h3 className="text-lg font-medium mb-2">
-              {filter === "unread" ? "No unread notifications" : "No notifications yet"}
+              {filter === "unread" ? "No unread notifications" : "All caught up!"}
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground max-w-sm mx-auto">
               {filter === "unread"
-                ? "All caught up! You have no unread notifications"
-                : "You'll see order updates, service requests, and other important notifications here"}
+                ? "You have no unread notifications at the moment."
+                : "You don't have any notifications yet. Important updates about your orders and account will appear here."}
             </p>
+            {notifications.length === 0 && (
+                 <div className="mt-8 flex justify-center gap-4">
+                     <Button asChild>
+                         <Link href="/generators">Browse Store</Link>
+                     </Button>
+                 </div>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3">
           {filteredNotifications.map((notification) => {
             const typeConfig =
               notificationTypeConfig[notification.type] ||
               notificationTypeConfig.WELCOME;
             const viewLink = getViewLink(notification);
+            const isExpanded = expandedId === notification._id;
             
             return (
               <Card
                 key={notification._id}
-                className={`cursor-pointer transition-colors ${
+                className={`group transition-all hover:shadow-md border-l-4 ${
                   !notification.isRead
-                    ? "bg-primary/5 border-primary/20"
-                    : "hover:bg-muted/50"
-                }`}
+                    ? "border-l-primary bg-primary/5"
+                    : "border-l-transparent hover:bg-muted/30"
+                } ${isExpanded ? "ring-2 ring-primary ring-offset-2" : "cursor-pointer"}`}
+                onClick={() => handleNotificationClick(notification)}
               >
-                <CardContent className="py-4">
+                <CardContent className="p-4 sm:p-5">
                   <div className="flex gap-4 items-start">
                     {/* Icon */}
                     <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg flex-shrink-0 ${typeConfig.color}`}
+                      className={`flex h-10 w-10 items-center justify-center rounded-full shadow-sm flex-shrink-0 ${typeConfig.color}`}
                     >
                       {typeConfig.icon}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold">{notification.title}</h3>
-                            <Badge variant="outline" className="text-xs">
-                              {typeConfig.label}
-                            </Badge>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-1 w-full">
+                          <div className="flex items-center gap-2">
+                            <h4 className={`font-semibold text-sm ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`}>
+                                {notification.title}
+                            </h4>
                             {!notification.isRead && (
-                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                                <span className="flex h-2 w-2 rounded-full bg-primary" />
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
+                          <p className={`text-sm text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>
                             {notification.message}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(notification.createdAt).toLocaleDateString(
-                              "en-PK",
-                              {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
+                          
+                          {isExpanded && viewLink && (
+                              <div className="pt-4">
+                                  <Button size="sm" onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(viewLink);
+                                  }}>
+                                      View Details <ArrowRight className="ml-2 h-4 w-4" />
+                                  </Button>
+                              </div>
+                          )}
+
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
+                            <Clock className="h-3 w-3" />
+                            {/* Uses dynamic display for better UX */}
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                           </p>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {viewLink && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {!notification.isRead && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                    title="Mark as read"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMarkAsRead(notification._id);
+                                    }}
+                                >
+                                    <Check className="h-4 w-4" />
+                                </Button>
+                            )}
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              onClick={() => {
-                                if (!notification.isRead) {
-                                  handleMarkAsRead(notification._id);
-                                }
-                              }}
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                title="Delete notification"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteNotification(notification._id);
+                                }}
+                                disabled={deleting === notification._id}
                             >
-                              <Link href={viewLink}>View</Link>
+                                <Trash2 className="h-4 w-4" />
                             </Button>
-                          )}
-                          {!notification.isRead && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleMarkAsRead(notification._id)
-                              }
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleDeleteNotification(notification._id)
-                            }
-                            disabled={deleting === notification._id}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
                       </div>
                     </div>
+                    
+                    {!isExpanded && viewLink && (
+                        <div className="self-center pl-2 text-muted-foreground/30 group-hover:text-primary/50 transition-colors">
+                            <ArrowRight className="h-5 w-5" />
+                        </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

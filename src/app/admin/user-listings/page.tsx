@@ -241,12 +241,16 @@ export default function AdminUserListingsPage() {
                   className="flex flex-col lg:flex-row lg:items-center justify-between p-4 border rounded-lg gap-4"
                 >
                   <div className="flex gap-4">
-                    {listing.images?.[0] && (
+                    {listing.images && listing.images.length > 0 && listing.images[0]?.url ? (
                       <img
                         src={listing.images[0].url}
                         alt={listing.title}
                         className="w-24 h-24 object-cover rounded-lg"
                       />
+                    ) : (
+                      <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center">
+                         <span className="text-xs text-muted-foreground">No Image</span>
+                      </div>
                     )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -356,12 +360,14 @@ export default function AdminUserListingsPage() {
               {selectedListing.images?.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {selectedListing.images.map((img, i) => (
+                    img && img.url ? (
                     <img
                       key={i}
                       src={img.url}
                       alt={`Image ${i + 1}`}
                       className="w-full aspect-square object-cover rounded-lg"
                     />
+                    ) : null
                   ))}
                 </div>
               )}

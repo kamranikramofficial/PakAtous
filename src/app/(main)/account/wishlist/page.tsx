@@ -12,22 +12,22 @@ import { Trash2 } from "lucide-react";
 interface WishlistItem {
   _id: string;
   itemType: "GENERATOR" | "PART";
-  generatorId?: string;
-  partId?: string;
-  generator?: {
+  generatorId?: {
+    _id: string;
     name: string;
     slug: string;
     price: number;
-    images: { url: string; alt?: string }[];
+    images?: { url: string; alt?: string }[];
     stock: number;
-  };
-  part?: {
+  } | string;
+  partId?: {
+    _id: string;
     name: string;
     slug: string;
     price: number;
-    images: { url: string; alt?: string }[];
+    images?: { url: string; alt?: string }[];
     stock: number;
-  };
+  } | string;
   createdAt: string;
 }
 
@@ -109,7 +109,11 @@ export default function WishlistPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item) => {
-                 const product = item.itemType === 'GENERATOR' ? item.generator : item.part;
+                 // Check if populated object exists
+                 const product = item.itemType === 'GENERATOR' 
+                    ? (typeof item.generatorId === 'object' ? item.generatorId : null)
+                    : (typeof item.partId === 'object' ? item.partId : null);
+                 
                  if (!product) return null;
 
                  const href = item.itemType === 'GENERATOR' 

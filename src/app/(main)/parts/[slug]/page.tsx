@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, notFound } from "next/navigation";
+import { useParams, notFound, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { Heart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,12 +79,16 @@ function QuickInfoSection() {
 
 export default function PartDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
   const { toast } = useToast();
   const addItem = useCartStore((state) => state.addItem);
   const [part, setPart] = useState<Part | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     const fetchPart = async () => {
@@ -106,6 +112,63 @@ export default function PartDetailPage() {
       fetchPart();
     }
   }, [params.slug]);
+
+  // Check wishlist status
+  useEffect(() => {
+      if (session?.user && part) {
+          const checkWishlist = async () => {
+              try {
+                  const res = await fetch('/api/user/wishlist');
+                  if (res.ok) {
+                      const items = await res.json();
+                      const found = items.some((item: any) => {
+                          if (!item.partId) return false;
+                          const pId = (typeof item.partId === 'object' && item.partId._id) 
+                              ? item.partId._id 
+                              : item.partId;
+                          return pId === part.id;
+                      });
+                      setIsInWishlist(found);
+                  }
+              } catch (e) {
+                  console.error("Wishlist check failed", e);
+              }
+          }
+          checkWishlist();
+      }
+  }, [session, part]);
+
+  const handleAddToWishlist = async () => {
+      if (!session) {
+          router.push(`/auth/login?callbackUrl=/parts/${params.slug}`);
+          return;
+      }
+      if (!part) return;
+
+      setWishlistLoading(true);
+      try {
+          const res = await fetch("/api/user/wishlist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ partId: part.id })
+          });
+          
+          if (res.ok) {
+              const data = await res.json();
+              if (data.action === 'added') {
+                  setIsInWishlist(true);
+                  toast({ title: "Added to wishlist" });
+              } else {
+                  setIsInWishlist(false);
+                  toast({ title: "Removed from wishlist" });
+              }
+          }
+      } catch (error) {
+          toast({ title: "Error updating wishlist", variant: "destructive" });
+      } finally {
+          setWishlistLoading(false);
+      }
+  };
 
   const handleAddToCart = () => {
     if (!part) return;
@@ -190,8 +253,8 @@ export default function PartDetailPage() {
                   }`}
                 >
                   <img
-                    src={image.url}
-                    alt={image.alt || `${part.name} ${index + 1}`}
+                    src={image?.url || "/placeholder.svg"}
+                    alt={image?.alt || `${part.name} ${index + 1}`}
                     className="h-full w-full object-cover"
                   />
                 </button>
@@ -324,6 +387,14 @@ export default function PartDetailPage() {
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
               Add to Cart
+            </Button>
+            <Button
+                variant="outline"
+                size="lg"
+                onClick={handleAddToWishlist}
+                disabled={wishlistLoading}
+            >
+                <Heart className={`h-5 w-5 ${isInWishlist ? "fill-red-500 text-red-500" : ""}`} />
             </Button>
           </div>
 
