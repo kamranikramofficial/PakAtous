@@ -13,6 +13,7 @@ import { useCartStore } from "@/store/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
 import { Heart } from "lucide-react";
+import { ReviewSection } from "@/components/reviews/review-section";
 
 interface Generator {
   id: string;
@@ -123,6 +124,7 @@ export default function GeneratorDetailPage() {
   const [addingToCart, setAddingToCart] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
 
   useEffect(() => {
     const fetchGenerator = async () => {
@@ -131,6 +133,7 @@ export default function GeneratorDetailPage() {
         if (!response.ok) throw new Error("Not found");
         const data = await response.json();
         setGenerator(data.generator);
+        setReviewCount(data.generator._count?.reviews || 0);
       } catch (error) {
         console.error("Error loading generator:", error);
         setGenerator(null);
@@ -558,7 +561,7 @@ export default function GeneratorDetailPage() {
             value="reviews"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
           >
-            Reviews ({generator._count?.reviews || 0})
+            Reviews ({reviewCount})
           </TabsTrigger>
         </TabsList>
 
@@ -589,58 +592,7 @@ export default function GeneratorDetailPage() {
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              {generator.reviews && generator.reviews.length > 0 ? (
-                <div className="space-y-6">
-                  {generator.reviews.map((review) => (
-                    <div key={review.id} className="border-b pb-6 last:border-0 last:pb-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                            {review.user.name?.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium">{review.user.name}</p>
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <svg
-                                  key={star}
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="14"
-                                  height="14"
-                                  viewBox="0 0 24 24"
-                                  fill={star <= review.rating ? "currentColor" : "none"}
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-yellow-400"
-                                >
-                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                </svg>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(review.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {review.comment && <p className="text-muted-foreground">{review.comment}</p>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No reviews yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Be the first to review this generator
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ReviewSection itemId={generator.id} itemType="GENERATOR" onCountChange={setReviewCount} />
         </TabsContent>
       </Tabs>
     </div>

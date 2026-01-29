@@ -13,6 +13,7 @@ import { useCartStore } from "@/store/cart-store";
 import { useToast } from "@/components/ui/use-toast";
 import { formatPrice } from "@/lib/utils";
 import { useSettings } from "@/contexts/settings-context";
+import { ReviewSection } from "@/components/reviews/review-section";
 
 interface Part {
   id: string;
@@ -89,6 +90,7 @@ export default function PartDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
 
   useEffect(() => {
     const fetchPart = async () => {
@@ -97,6 +99,7 @@ export default function PartDetailPage() {
         if (res.ok) {
           const data = await res.json();
           setPart(data);
+          setReviewCount(data._count?.reviews || 0);
         } else {
           setPart(null);
         }
@@ -409,7 +412,7 @@ export default function PartDetailPage() {
           <TabsList className="w-full justify-start">
             <TabsTrigger value="specifications">Specifications</TabsTrigger>
             <TabsTrigger value="reviews">
-              Reviews ({part._count?.reviews || 0})
+              Reviews ({reviewCount})
             </TabsTrigger>
           </TabsList>
 
@@ -433,49 +436,7 @@ export default function PartDetailPage() {
           </TabsContent>
 
           <TabsContent value="reviews" className="mt-6">
-            <Card>
-              <CardContent className="pt-6">
-                {part.reviews.length > 0 ? (
-                  <div className="space-y-6">
-                    {part.reviews.map((review) => (
-                      <div key={review.id} className="border-b pb-6 last:border-0">
-                        <div className="flex items-center gap-4">
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <svg
-                                key={star}
-                                className={`h-4 w-4 ${
-                                  star <= review.rating ? "text-yellow-400" : "text-gray-300"
-                                }`}
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                            ))}
-                          </div>
-                          <span className="font-medium">{review.user.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(review.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {review.title && (
-                          <h4 className="mt-2 font-medium">{review.title}</h4>
-                        )}
-                        <p className="mt-1 text-muted-foreground">{review.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No reviews yet.</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Be the first to review this part.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ReviewSection itemId={part.id} itemType="PART" onCountChange={setReviewCount} />
           </TabsContent>
         </Tabs>
       </div>
