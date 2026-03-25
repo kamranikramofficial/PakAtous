@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toaster";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pak-atous.vercel.app";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -16,7 +18,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(APP_URL),
   applicationName: "PakAutoSe Generators",
   title: {
     default: "PakAutoSe Generators - Quality Generators, Parts & Services",
@@ -58,7 +60,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_PK",
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: APP_URL,
     title: "PakAutoSe Generators",
     description:
       "Your trusted source for quality generators, genuine parts, and professional services.",

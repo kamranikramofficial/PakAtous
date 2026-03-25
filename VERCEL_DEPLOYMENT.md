@@ -11,7 +11,7 @@ MONGODB_URI=your_mongodb_atlas_connection_string
 
 ### 2. NextAuth (REQUIRED - Authentication will fail without these)
 ```
-NEXTAUTH_URL=https://your-domain.vercel.app
+NEXTAUTH_URL=https://pak-atous.vercel.app
 NEXTAUTH_SECRET=generate_a_random_32_char_string
 ```
 
@@ -40,7 +40,7 @@ EMAIL_FROM=noreply@yourdomain.com
 
 ### 6. Application
 ```
-NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+NEXT_PUBLIC_APP_URL=https://pak-atous.vercel.app
 NEXT_PUBLIC_APP_NAME=PakAutoSe Generators
 NODE_ENV=production
 ```
@@ -49,7 +49,7 @@ NODE_ENV=production
 
 1. **Set NEXTAUTH_URL to your Vercel domain:**
    - Go to Vercel Dashboard → Your Project → Settings → Environment Variables
-   - Add: `NEXTAUTH_URL` = `https://your-actual-domain.vercel.app`
+   - Add: `NEXTAUTH_URL` = `https://pak-atous.vercel.app`
 
 2. **Set NEXTAUTH_SECRET (if not already set):**
    - Generate: Run `openssl rand -base64 32` in terminal

@@ -13,7 +13,7 @@ import { formatPrice } from "@/lib/utils";
 import { FeaturesSection } from "@/components/home/features-section";
 import { CTASection } from "./page-cta";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pak-atous.vercel.app";
 
 export const metadata: Metadata = {
   title: "PakAutoSe Generators in Pakistan - Buy Generators, Parts & Services",
