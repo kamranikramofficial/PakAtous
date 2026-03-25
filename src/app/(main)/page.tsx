@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { ArrowRight, Zap, Shield, Truck, Headphones, Wrench, Package, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,42 @@ import { Brand } from "@/models/Brand";
 import { formatPrice } from "@/lib/utils";
 import { FeaturesSection } from "@/components/home/features-section";
 import { CTASection } from "./page-cta";
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+export const metadata: Metadata = {
+  title: "PakAutoSe Generators in Pakistan - Buy Generators, Parts & Services",
+  description:
+    "PakAutoSe is your trusted platform for reliable generators, genuine spare parts, and expert maintenance services across Pakistan.",
+  keywords: [
+    "pakautose",
+    "pakautose generators",
+    "kamran ikram",
+    "kamranikramoffical",
+    "generator dealer pakistan",
+    "buy generators pakistan",
+    "generator parts pakistan",
+    "generator repair services",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "PakAutoSe Generators in Pakistan",
+    description:
+      "Shop quality generators, genuine parts, and professional services from PakAutoSe.",
+    url: baseUrl,
+    siteName: "PakAutoSe Generators",
+    locale: "en_PK",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PakAutoSe Generators in Pakistan",
+    description:
+      "Shop quality generators, genuine parts, and professional services from PakAutoSe.",
+  },
+};
 
 async function getFeaturedGenerators() {
   await dbConnect();
@@ -94,8 +131,39 @@ export default async function HomePage() {
     getBrands(),
   ]);
 
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "PakAutoSe Generators",
+    url: baseUrl,
+    description:
+      "PakAutoSe provides quality generators, genuine parts, and generator services in Pakistan.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${baseUrl}/generators?search={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "PakAutoSe Generators",
+    alternateName: ["PakAutoSe", "kamran ikram", "kamranikramoffical"],
+    url: baseUrl,
+    sameAs: [baseUrl],
+  };
+
   return (
     <div className="flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 py-20 md:py-32">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />

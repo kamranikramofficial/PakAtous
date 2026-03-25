@@ -17,6 +17,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  applicationName: "PakAutoSe Generators",
   title: {
     default: "PakAutoSe Generators - Quality Generators, Parts & Services",
     template: "%s | PakAutoSe Generators",
@@ -24,6 +25,8 @@ export const metadata: Metadata = {
   description:
     "Your trusted source for quality generators, genuine parts, and professional generator services in Pakistan. Shop now for the best deals!",
   keywords: [
+    "PakAutoSe",
+    "PakAutoSe Generators",
     "generators",
     "generator parts",
     "generator services",
@@ -32,9 +35,26 @@ export const metadata: Metadata = {
     "Pakistan",
     "generator repair",
     "generator maintenance",
+    "kamran ikram",
+    "kamranikramoffical",
+    "kamran ikram official",
   ],
   authors: [{ name: "PakAutoSe" }],
   creator: "PakAutoSe",
+  publisher: "PakAutoSe",
+  category: "Business",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
+  verification: {
+    google: "rDqxssgRpWDWOjB4U8LG-0FXPNW6sJ62eAALi70-Qv0",
+  },
   openGraph: {
     type: "website",
     locale: "en_PK",
@@ -53,6 +73,14 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
